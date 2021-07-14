@@ -35,6 +35,9 @@ import java.lang.annotation.Target;
  * SPI provider can call {@link ExtensionLoader#getActivateExtension(URL, String, String)} to find out all activated
  * extensions with the given criteria.
  *
+ * 比如Dubbo中的Filter接口，需要@Activate这样的注解来协助做到自动激活特性。
+ * Filter接口有很多实现，不同场景可能需要不同的Filter实现来协同工作，这里需要一套配置来指定当前场景哪些Filter可用
+ *
  * @see SPI
  * @see URL
  * @see ExtensionLoader
@@ -49,6 +52,7 @@ public @interface Activate {
      *
      * @return group names to match
      * @see ExtensionLoader#getActivateExtension(URL, String, String)
+     * provider还是consumer端
      */
     String[] group() default {};
 
@@ -62,6 +66,7 @@ public @interface Activate {
      * @return URL parameter keys
      * @see ExtensionLoader#getActivateExtension(URL, String)
      * @see ExtensionLoader#getActivateExtension(URL, String, String)
+     * url中指定key才会激活
      */
     String[] value() default {};
 

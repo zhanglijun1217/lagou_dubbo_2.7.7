@@ -26,6 +26,7 @@ import java.util.List;
 
 /**
  * AdaptiveExtensionFactory
+ * ExtensionFactory SPI接口的扩展点实现类 会作为自适应扩展点直接返回
  */
 @Adaptive
 public class AdaptiveExtensionFactory implements ExtensionFactory {

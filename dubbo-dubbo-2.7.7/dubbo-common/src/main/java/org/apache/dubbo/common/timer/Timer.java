@@ -21,6 +21,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 定义了定时器的基本行为
+ * 核心方法是newTimeout方法：提交一个定时任务（TimerTask）并且返回关联的Timeout对象，类似于线程池中提交任务
  * Schedules {@link TimerTask}s for one-time future execution in a background
  * thread.
  */
@@ -29,6 +31,7 @@ public interface Timer {
     /**
      * Schedules the specified {@link TimerTask} for one-time execution after
      * the specified delay.
+     * 向时间轮中提交一个定时任务
      *
      * @return a handle which is associated with the specified task
      * @throws IllegalStateException      if this timer has been {@linkplain #stop() stopped} already
