@@ -75,15 +75,18 @@ public class NettyClient extends AbstractClient {
     /**
      * The constructor of NettyClient.
      * It wil init and start netty.
+     * 在dubbo服务引用的过程中 会从DubboProtocol.refer()方法中调用过来 来启动一个NettyClient
      */
     public NettyClient(final URL url, final ChannelHandler handler) throws RemotingException {
     	// you can customize name and type of client thread pool by THREAD_NAME_KEY and THREADPOOL_KEY in CommonConstants.
     	// the handler will be wrapped: MultiMessageHandler->HeartbeatHandler->handler
+        // wrapChannelHandler也会为 handler包装上MultiMessageHandler -->HeartbeatHandler--> AllDispatcherHandler --> DecodeHandler--> HeaderExchangeHandler
     	super(url, wrapChannelHandler(url, handler));
     }
 
     /**
      * Init bootstrap
+     * 启动一个nettyClient客户端
      *
      * @throws Throwable
      */

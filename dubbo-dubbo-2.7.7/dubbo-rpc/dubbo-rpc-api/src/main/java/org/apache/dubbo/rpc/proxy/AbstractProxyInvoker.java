@@ -33,7 +33,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 /**
- * InvokerWrapper
+ * InvokerWrapper 包装真正dubbo服务实现类
+ * ProxyFactory构建Invoker时候的返回值 返回的Invoker.invoke方法会调用这里的invoke方法
+ * 服务导出时会将dubbo实现类包装为ProxyInvoker 即请求到服务端之后会调用到此处
  */
 public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
     Logger logger = LoggerFactory.getLogger(AbstractProxyInvoker.class);
@@ -81,9 +83,14 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         try {
+            // 子类实现doInvoke方法 即具体的ProxyFactory实现 （jdk或者javassist）
+            //  比如 JavassistProxyFactory中实现doInvoke是通过调用字节码动态生成的Wrapper的子类 调用其invokeMethod方法
+            // 内部会调用dubbo服务实现类的方法
             Object value = doInvoke(proxy, invocation.getMethodName(), invocation.getParameterTypes(), invocation.getArguments());
+            // 基于value创建一个CompltableFuture
 			CompletableFuture<Object> future = wrapWithFuture(value);
             CompletableFuture<AppResponse> appResponseFuture = future.handle((obj, t) -> {
+                // 根据dubbo返回值封装的future 注册一个任务 将真正返回值包装到AppResponse
                 AppResponse result = new AppResponse();
                 if (t != null) {
                     if (t instanceof CompletionException) {
@@ -96,6 +103,7 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
                 }
                 return result;
             });
+            // 包装一层AsyncRpcResult返回给上层Invoker
             return new AsyncRpcResult(appResponseFuture, invocation);
         } catch (InvocationTargetException e) {
             if (RpcContext.getContext().isAsyncStarted() && !RpcContext.getContext().stopAsync()) {
@@ -109,10 +117,13 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
 
 	private CompletableFuture<Object> wrapWithFuture(Object value) {
         if (RpcContext.getContext().isAsyncStarted()) {
+            // 支持AsyncContext方式异步调用
             return ((AsyncContextImpl)(RpcContext.getContext().getAsyncContext())).getInternalFuture();
         } else if (value instanceof CompletableFuture) {
+            // 如果Duubo服务本身 直接强转
             return (CompletableFuture<Object>) value;
         }
+        // 直接包装
         return CompletableFuture.completedFuture(value);
     }
 

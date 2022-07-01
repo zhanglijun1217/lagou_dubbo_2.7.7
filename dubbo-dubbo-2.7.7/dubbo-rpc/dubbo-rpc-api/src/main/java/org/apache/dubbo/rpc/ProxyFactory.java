@@ -30,6 +30,7 @@ public interface ProxyFactory {
 
     /**
      * create proxy.
+     * 创建代理 在引用dubbo服务时使用，引用的最终是代理对象
      *
      * @param invoker
      * @return proxy
@@ -48,6 +49,8 @@ public interface ProxyFactory {
 
     /**
      * create invoker.
+     * 代理工厂Invoker 在export导出服务时使用。
+     * 在服务导出export过程中 会getInvoker来生成 dubbo服务实现类的代理封装
      *
      * @param <T>
      * @param proxy

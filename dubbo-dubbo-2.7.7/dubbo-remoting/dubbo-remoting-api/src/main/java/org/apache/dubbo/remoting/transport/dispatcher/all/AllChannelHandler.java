@@ -29,6 +29,7 @@ import org.apache.dubbo.remoting.transport.dispatcher.WrappedChannelHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
+// dispatcher的默认实现 dubbo的线程模型中的一种 代表io线程收到所有的事件 都转发给对应的线程池去处理 io线程可以立即返回
 public class AllChannelHandler extends WrappedChannelHandler {
 
     public AllChannelHandler(ChannelHandler handler, URL url) {
@@ -57,8 +58,27 @@ public class AllChannelHandler extends WrappedChannelHandler {
 
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // received处理一个请求 可能是服务端处理的Request请求 也可能是客户端处理的结果Response返回请求
+        // 然后去丢给dubbo业务线程池去执行。 这里之后就Dubbo的IO线程就返回了
+
+        // 在服务端处理Request请求场景： 交给DubboServerHandler业务线程执行
+        //      内部的的Invoker执行完成后 通过channel到NettyServerHandler向客户端发送返回信息（HeaderExchangeHandler）。
+
+        // 在客户端处理Response返回场景：交给DubboClientHandler业务线程执行
+        //      在之前客户端注册的 id——>DefaultFuture缓存中找到DefaultFutrue 执行complete方法将Response绑定（HeaderExchangeHandler)，
+        //      然后唤醒异步转同步阻塞的用户线程（AsyncToSyncInvoker），返回Response的结果
+
+
+        // 获取一个线程池
         ExecutorService executor = getPreferredExecutorService(message);
         try {
+            // 线程池中处理请求
+
+            // 比如 对于服务处理Request请求：
+            // handler就是一路包装的handler DecodeHandler--> HeaderExchangeHandler --> ExchangerHandlerAdapter（requestHandler) ExchangerHandlerAdapter是在DubboProtocol中实现的requestHandler
+            //          内部receive方法会转换Invocation && 生成serviceKey从exporterMap中获取Exporter --> 获取Invoker -->调用Filter链 --> 调用Dubbo服务真正的实现类
+
+            // 封装为ChannelEventRunnable：作用就是根据channel的state来选择调用handler的不同方法
             executor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));
         } catch (Throwable t) {
         	if(message instanceof Request && t instanceof RejectedExecutionException){

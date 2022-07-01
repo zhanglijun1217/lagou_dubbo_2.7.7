@@ -78,6 +78,7 @@ public abstract class AnnotatedInterfaceConfigBeanBuilder<C extends AbstractInte
 
         C configBean = doBuild();
 
+        // configure ReferenceBean 设置内部的配置 比如注册中心配置 应用配置等
         configureBean(configBean);
 
         if (logger.isInfoEnabled()) {

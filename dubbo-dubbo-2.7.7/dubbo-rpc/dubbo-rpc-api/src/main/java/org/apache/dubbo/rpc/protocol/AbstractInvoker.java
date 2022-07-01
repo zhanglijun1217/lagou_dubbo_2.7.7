@@ -131,6 +131,7 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         return getInterface() + " -> " + (getUrl() == null ? "" : getUrl().toString());
     }
 
+
     @Override
     public Result invoke(Invocation inv) throws RpcException {
         // if invoker is destroyed due to address refresh from registry, let's allow the current invoke to proceed
@@ -138,6 +139,7 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
             logger.warn("Invoker for service " + this + " on consumer " + NetUtils.getLocalHost() + " is destroyed, "
                     + ", dubbo version is " + Version.getVersion() + ", this invoker should not be used any longer");
         }
+        // 构造invocation
         RpcInvocation invocation = (RpcInvocation) inv;
         invocation.setInvoker(this);
         if (CollectionUtils.isNotEmptyMap(attachment)) {
@@ -152,14 +154,18 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
              * by the built-in retry mechanism of the Dubbo. The attachment to update RpcContext will no longer work, which is
              * a mistake in most cases (for example, through Filter to RpcContext output traceId and spanId and other information).
              */
+            // 将RpcContext中设置的attachments 存入invocation的attachments 路由到服务端
             invocation.addObjectAttachments(contextAttachments);
         }
 
+        // 设置调用模式
         invocation.setInvokeMode(RpcUtils.getInvokeMode(url, invocation));
+        // 异步调用会生成一个id绑定在RpcInvocation的attachments中
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
 
         AsyncRpcResult asyncResult;
         try {
+            // 调用子类的doInvoke方法 比如DubboInvoker 返回AsyncRpcResult
             asyncResult = (AsyncRpcResult) doInvoke(invocation);
         } catch (InvocationTargetException e) { // biz exception
             Throwable te = e.getTargetException();
@@ -180,13 +186,17 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         } catch (Throwable e) {
             asyncResult = AsyncRpcResult.newDefaultAsyncResult(null, e, invocation);
         }
+        // RpcContext中设置调用返回的futureRpcContext中设置调用返回的future 用于异步请求的结果返回
+        // dubbo2.7版本之后是一个CompletableFuture 客户端可以从RpcContext中取出执行CompletableFuture一系列操作。
         RpcContext.getContext().setFuture(new FutureAdapter(asyncResult.getResponseFuture()));
         return asyncResult;
     }
 
     protected ExecutorService getCallbackExecutor(URL url, Invocation inv) {
+        // 确定回调的线程池
         ExecutorService sharedExecutor = ExtensionLoader.getExtensionLoader(ExecutorRepository.class).getDefaultExtension().getExecutor(url);
         if (InvokeMode.SYNC == RpcUtils.getInvokeMode(getUrl(), inv)) {
+            // 调用模式是SYNC 返回ThreadLessExecutor
             return new ThreadlessExecutor(sharedExecutor);
         } else {
             return sharedExecutor;

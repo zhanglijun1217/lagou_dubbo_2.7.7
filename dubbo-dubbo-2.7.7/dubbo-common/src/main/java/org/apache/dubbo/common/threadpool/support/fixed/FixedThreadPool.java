@@ -43,8 +43,14 @@ public class FixedThreadPool implements ThreadPool {
 
     @Override
     public Executor getExecutor(URL url) {
+        // 线程名称
+        // 设置的地方可以@see
+        //          1. NettyServer的构造函数 传入的是DubboServerHandler 代表服务端接收到请求时处理请求的线程名称
+        //          2. org.apache.dubbo.remoting.transport.AbstractClient.initExecutor client端在初始化传入 client处理时的线程的名称DubboClientHandler
         String name = url.getParameter(THREAD_NAME_KEY, DEFAULT_THREAD_NAME);
+        // 线程数量
         int threads = url.getParameter(THREADS_KEY, DEFAULT_THREADS);
+        // 队列长度
         int queues = url.getParameter(QUEUES_KEY, DEFAULT_QUEUES);
         return new ThreadPoolExecutor(threads, threads, 0, TimeUnit.MILLISECONDS,
                 queues == 0 ? new SynchronousQueue<Runnable>() :

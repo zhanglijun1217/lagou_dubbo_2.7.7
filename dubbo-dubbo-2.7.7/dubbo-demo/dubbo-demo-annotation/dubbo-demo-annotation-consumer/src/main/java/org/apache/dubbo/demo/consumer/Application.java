@@ -16,26 +16,50 @@
  */
 package org.apache.dubbo.demo.consumer;
 
+import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.apache.dubbo.demo.DemoService;
+import org.apache.dubbo.demo.consumer.comp.AsyncReferenceComponent;
 import org.apache.dubbo.demo.consumer.comp.DemoServiceComponent;
 
+import org.apache.dubbo.demo.consumer.comp.ResourceDemo;
+import org.apache.dubbo.demo.consumer.comp.asyncWithPrimaryRes.AsyncInvokeService;
+import org.apache.dubbo.rpc.Protocol;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+
+import java.util.concurrent.CountDownLatch;
 
 public class Application {
     /**
      * In order to make sure multicast registry works, need to specify '-Djava.net.preferIPv4Stack=true' before
      * launch the application
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ConsumerConfiguration.class);
         context.start();
-        DemoService service = context.getBean("demoServiceComponent", DemoServiceComponent.class);
-        String hello = service.sayHello("world");
-        System.out.println("result :" + hello);
+//        DemoService service = context.getBean("demoServiceComponent", DemoServiceComponent.class);
+//        String hello = service.sayHello("world");
+//        System.out.println("result :" + hello);
+
+        // 查看dubbo引用对象 在Spring容器中的对线下 是个FactoryBean 会调用getObject方法也就是dubbo的代理对象
+        // 所以@Resource也是可以直接引用dubbo reference的
+//        ExtensionLoader.getExtensionLoader(Protocol.class).getExtension("registry");
+//        ResourceDemo resourceDemo = context.getBean("resourceDemo", ResourceDemo.class);
+//        resourceDemo.s();
+
+        // 异步调用demo
+//        AsyncReferenceComponent bean = context.getBean(AsyncReferenceComponent.class);
+//        // 内部是async异步引用
+//        bean.echo("world");
+
+
+        // 测试异步调用 包装类和基本类型返回结果
+        AsyncInvokeService asyncInvokeService = context.getBean(AsyncInvokeService.class);
+        asyncInvokeService.async();
+        new CountDownLatch(1).await();
     }
 
     @Configuration

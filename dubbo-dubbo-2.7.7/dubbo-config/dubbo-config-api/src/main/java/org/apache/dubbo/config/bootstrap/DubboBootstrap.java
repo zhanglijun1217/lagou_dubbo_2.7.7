@@ -758,6 +758,7 @@ public class DubboBootstrap extends GenericEventListener {
 
             referServices();
             if (asyncExportingFutures.size() > 0) {
+                // 异步去export 起一个线程去await所有的dubbo服务暴露完成
                 new Thread(() -> {
                     try {
                         this.awaitFinish();

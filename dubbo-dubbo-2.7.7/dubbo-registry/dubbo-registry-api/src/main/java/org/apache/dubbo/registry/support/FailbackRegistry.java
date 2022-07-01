@@ -44,6 +44,8 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_RETRY_PERIOD_KEY;
 
 /**
  * FailbackRegistry. (SPI, Prototype, ThreadSafe)
+ * （1）容错（带有重试机制）的Registry 提供了失败重试的能力
+ * （2）也是顶层注册中心实现的门面 提供了registry等直接调用注册中心的方法 具体的注册中心实现（比如ZkRegistry）实现模板方法 doxxx()
  */
 public abstract class FailbackRegistry extends AbstractRegistry {
 
@@ -72,6 +74,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         this.retryPeriod = url.getParameter(REGISTRY_RETRY_PERIOD_KEY, DEFAULT_REGISTRY_RETRY_PERIOD);
 
         // since the retry task will not be very much. 128 ticks is enough.
+        // 利用时间轮注册重试和注册中心连接的任务
         retryTimer = new HashedWheelTimer(new NamedThreadFactory("DubboRegistryRetryTimer", true), retryPeriod, TimeUnit.MILLISECONDS, 128);
     }
 
@@ -99,6 +102,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     }
 
     private void addFailedRegistered(URL url) {
+        // 如果注册失败 会添加到重试任务到时间轮 进行后面的异步重试
         FailedRegisteredTask oldOne = failedRegistered.get(url);
         if (oldOne != null) {
             return;
@@ -107,6 +111,8 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         oldOne = failedRegistered.putIfAbsent(url, newTask);
         if (oldOne == null) {
             // never has a retry task. then start a new task for retry.
+            // Failback 容错。 如果注册失败 启动一个时间轮去异步重试注册节点 （时间轮的一个应用）
+            // 时间：retryPeriod url中参数指定
             retryTimer.newTimeout(newTask, retryPeriod, TimeUnit.MILLISECONDS);
         }
     }
@@ -229,14 +235,18 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     @Override
     public void register(URL url) {
         if (!acceptable(url)) {
+            // 判断是否要接收这个进行注册的url
             logger.info("URL " + url + " will not be registered to Registry. Registry " + url + " does not accept service of this protocol type.");
             return;
         }
+        // 调用AbstractRegistry的register方法，完成本地缓存的一些写入
         super.register(url);
+        // 从注册失败和取消注册失败的 重试任务中删除url
         removeFailedRegistered(url);
         removeFailedUnregistered(url);
         try {
             // Sending a registration request to the server side
+            // 真正去注册中心写入节点信息
             doRegister(url);
         } catch (Exception e) {
             Throwable t = e;
@@ -256,6 +266,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             }
 
             // Record a failed registration request to a failed list, retry regularly
+            // 注册发生异常 添加到失败注册集合中 有对应的定时任务重试
             addFailedRegistered(url);
         }
     }
@@ -330,15 +341,18 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedSubscribed(url, listener);
         try {
             // Sending a subscription request to the server side
+            // 向注册中心中订阅节点/数据信息
             doSubscribe(url, listener);
         } catch (Exception e) {
             Throwable t = e;
 
+            // 尝试从获取本地缓存中获取要监听的url
             List<URL> urls = getCacheUrls(url);
             if (CollectionUtils.isNotEmpty(urls)) {
                 notify(url, listener, urls);
                 logger.error("Failed to subscribe " + url + ", Using cached list: " + urls + " from cache file: " + getUrl().getParameter(FILE_KEY, System.getProperty("user.home") + "/dubbo-registry-" + url.getHost() + ".cache") + ", cause: " + t.getMessage(), t);
             } else {
+                // 本地缓存没取到 则去校验check参数
                 // If the startup detection is opened, the Exception is thrown directly.
                 boolean check = getUrl().getParameter(Constants.CHECK_KEY, true)
                         && url.getParameter(Constants.CHECK_KEY, true);
@@ -358,6 +372,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         }
     }
 
+    // 取消订阅就是删除监听器。
     @Override
     public void unsubscribe(URL url, NotifyListener listener) {
         super.unsubscribe(url, listener);
@@ -437,6 +452,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     @Override
     public void destroy() {
         super.destroy();
+        // 暂停时间轮中的任务
         retryTimer.stop();
     }
 

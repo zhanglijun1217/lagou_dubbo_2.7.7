@@ -159,6 +159,7 @@ final class NettyChannel extends AbstractChannel {
         boolean success = true;
         int timeout = 0;
         try {
+            // channel写入缓冲区 但是不一定发送出去了 这里没办法保证一定发出去
             ChannelFuture future = channel.writeAndFlush(message);
             if (sent) {
                 // wait timeout ms

@@ -105,8 +105,10 @@ public class DubboProtocol extends AbstractProtocol {
     private final ConcurrentMap<String, Object> locks = new ConcurrentHashMap<>();
     private final Set<String> optimizers = new ConcurrentHashSet<>();
 
+    // 一个ExchangeHandlerAdapter实例 其中reply来接收dubbo调用请求
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
+        // reply方法 返回CompletableFuture
         @Override
         public CompletableFuture<Object> reply(ExchangeChannel channel, Object message) throws RemotingException {
 
@@ -116,7 +118,9 @@ public class DubboProtocol extends AbstractProtocol {
                         + ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress());
             }
 
+            // message转Invocation
             Invocation inv = (Invocation) message;
+            // 获取Invoker 内部就是用serviceKey 从exporterMap中获取到对应的Export Export内部封装了Dubbo服务实现类
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getObjectAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -141,17 +145,23 @@ public class DubboProtocol extends AbstractProtocol {
                     return null;
                 }
             }
+            // 写入RpcContext的remoteAddress 在服务端拿的是channel的remoteAddress
             RpcContext.getContext().setRemoteAddress(channel.getRemoteAddress());
+            // Invoker内部是真正的dubbo服务实现 调用invoke最终会调用到实现类上
+            // 不直接是服务实现类可能经过Filter链、Wrapper.invokeMethod等路径
             Result result = invoker.invoke(inv);
+            // 返回一个CompletableFuture 调用AsyncRpcResult.thenApply
             return result.thenApply(Function.identity());
         }
 
         @Override
         public void received(Channel channel, Object message) throws RemotingException {
             if (message instanceof Invocation) {
+                // 是invocation 或调用reply
                 reply((ExchangeChannel) channel, message);
 
             } else {
+                //其他委托给父类
                 super.received(channel, message);
             }
         }
@@ -252,12 +262,14 @@ public class DubboProtocol extends AbstractProtocol {
             inv.getObjectAttachments().put(IS_CALLBACK_SERVICE_INVOKE, Boolean.TRUE.toString());
         }
 
+        // 构建serviceKey
         String serviceKey = serviceKey(
                 port,
                 path,
                 (String) inv.getObjectAttachments().get(VERSION_KEY),
                 (String) inv.getObjectAttachments().get(GROUP_KEY)
         );
+        // 应用维护的exporterMap中根据serviceKey取出Exporter
         DubboExporter<?> exporter = (DubboExporter<?>) exporterMap.get(serviceKey);
 
         if (exporter == null) {
@@ -277,12 +289,18 @@ public class DubboProtocol extends AbstractProtocol {
         return DEFAULT_PORT;
     }
 
+    // dubbo协议的服务导出接口
+    //   1. 为每个导出的服务生成serviceKey 存放在exporterMap中 方便调用时使用
+    //   2. 启动ProtocolServer 这里就是NettyServer 处理请求
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+        // 获取Invoker当前的url
         URL url = invoker.getUrl();
 
-        // export service.
+        // export service. 每个服务会去生成一个service key
         String key = serviceKey(url);
+        // 为Invoker key封装为一个DubboExporter 放入exporterMap中
+        // exporterMap很重要 在服务调用的过程中会根据服务的key来寻找对应的Invoker进行调用
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
         exporterMap.put(key, exporter);
 
@@ -300,6 +318,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 启动server来接收请求 比如dubbo协议就是启动NettyServer http协议就是启动Tomcat
         openServer(url);
         optimizeSerialization(url);
 
@@ -307,16 +326,18 @@ public class DubboProtocol extends AbstractProtocol {
     }
 
     private void openServer(URL url) {
-        // find server.
+        // find server. 以地址为key进行缓存
         String key = url.getAddress();
         //client can export a service which's only for server to invoke
         boolean isServer = url.getParameter(IS_SERVER_KEY, true);
         if (isServer) {
+            // serverMap缓存
             ProtocolServer server = serverMap.get(key);
             if (server == null) {
                 synchronized (this) {
                     server = serverMap.get(key);
                     if (server == null) {
+                        // 对serverMap缓存添加 会创建一个ProtocolServer 代表一个服务端
                         serverMap.put(key, createServer(url));
                     }
                 }
@@ -327,12 +348,17 @@ public class DubboProtocol extends AbstractProtocol {
         }
     }
 
+    // 创建一个ProtocolServer
     private ProtocolServer createServer(URL url) {
+        // 构建url
         url = URLBuilder.from(url)
                 // send readonly event when server closes, it's enabled by default
+                // readOnly事件是否阻塞
                 .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
                 // enable heartbeat by default
+                // 心跳间隔
                 .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
+                // 指定序列化器  在真正初始化Server（比如NettyServer）根据这个key的value选择对应的编解码序列化器扩展点实现
                 .addParameter(CODEC_KEY, DubboCodec.NAME)
                 .build();
         String str = url.getParameter(SERVER_KEY, DEFAULT_REMOTING_SERVER);
@@ -343,6 +369,8 @@ public class DubboProtocol extends AbstractProtocol {
 
         ExchangeServer server;
         try {
+           // 通过Exchangers门面类，创建ExchangeServer对象
+            // requestHandler用来接收请求 是一个ExchangeHandlerAdapter 内部reply方法接收请求
             server = Exchangers.bind(url, requestHandler);
         } catch (RemotingException e) {
             throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);
@@ -355,7 +383,7 @@ public class DubboProtocol extends AbstractProtocol {
                 throw new RpcException("Unsupported client type: " + str);
             }
         }
-
+        // 将ExchangeServer封装成DubboProtocolServer返回
         return new DubboProtocolServer(server);
     }
 
@@ -396,12 +424,15 @@ public class DubboProtocol extends AbstractProtocol {
         }
     }
 
+    // 服务引用过程中会在这里去创建DubboInvoker 可以对应服务暴露过程中的DubboExporter 创建完成之后维护在invokers集合中
     @Override
     public <T> Invoker<T> protocolBindingRefer(Class<T> serviceType, URL url) throws RpcException {
         optimizeSerialization(url);
 
         // create rpc invoker.
+        // 创建DubboInvoker
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
+        // Invokers服务引用的集合中添加Invoker
         invokers.add(invoker);
 
         return invoker;
@@ -433,6 +464,7 @@ public class DubboProtocol extends AbstractProtocol {
                 clients[i] = shareClients.get(i);
 
             } else {
+                // 初始化客户端（底层去开启NettyClient、给客户端绑定一系列处理器链)
                 clients[i] = initClient(url);
             }
         }
@@ -564,7 +596,11 @@ public class DubboProtocol extends AbstractProtocol {
 
     /**
      * Create new connection
+     * 会在引用dubbo服务时调用
+     * 初始化client和服务端建立连接
      *
+     * 内部调用Exchangers.connect去创建底层的NettyClient
+     * 会包装requestHandler
      * @param url
      */
     private ExchangeClient initClient(URL url) {
@@ -589,6 +625,9 @@ public class DubboProtocol extends AbstractProtocol {
                 client = new LazyConnectExchangeClient(url, requestHandler);
 
             } else {
+                // 通过交换层 去建立一个client
+                // 绑定requestHandler
+                // @See HeaderExchangeHandler received 但是真正处理请求的返回值时 没有用到这个requestHandler 直接去操作的DefaultFuture
                 client = Exchangers.connect(url, requestHandler);
             }
 

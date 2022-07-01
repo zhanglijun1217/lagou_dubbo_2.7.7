@@ -39,6 +39,7 @@ public abstract class Wrapper {
     private static final Map<Class<?>, Wrapper> WRAPPER_MAP = new ConcurrentHashMap<Class<?>, Wrapper>(); //class wrapper map
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
     private static final String[] OBJECT_METHODS = new String[]{"getClass", "hashCode", "toString", "equals"};
+    // Wrapper提供的内部实现
     private static final Wrapper OBJECT_WRAPPER = new Wrapper() {
         @Override
         public String[] getMethodNames() {
@@ -75,8 +76,10 @@ public abstract class Wrapper {
             return false;
         }
 
+        // Wrapper的invokeMethod方法
         @Override
         public Object invokeMethod(Object instance, String mn, Class<?>[] types, Object[] args) throws NoSuchMethodException {
+            // 几个特殊方法直接用原始类去调用
             if ("getClass".equals(mn)) {
                 return instance.getClass();
             }
@@ -116,6 +119,7 @@ public abstract class Wrapper {
         return WRAPPER_MAP.computeIfAbsent(c, key -> makeWrapper(key));
     }
 
+    // 生成Wrapper的实现 用字节码工具Javassist
     private static Wrapper makeWrapper(Class<?> c) {
         if (c.isPrimitive()) {
             throw new IllegalArgumentException("Can not create wrapper for primitive type: " + c);
@@ -442,6 +446,7 @@ public abstract class Wrapper {
 
     /**
      * invoke method.
+     * 调用具体的方法 实现是在Wrapper.getWrapper字节码生成的一个子类
      *
      * @param instance instance.
      * @param mn       method name.

@@ -39,7 +39,9 @@ public class DubboExporter<T> extends AbstractExporter<T> {
 
     @Override
     public void unexport() {
+        // 调用父类的export
         super.unexport();
+        // 引用的exporterMap中删除已经导出的服务
         exporterMap.remove(key);
     }
 

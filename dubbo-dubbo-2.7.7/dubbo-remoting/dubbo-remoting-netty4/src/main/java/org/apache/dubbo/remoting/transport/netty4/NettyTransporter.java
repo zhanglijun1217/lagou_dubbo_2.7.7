@@ -30,13 +30,17 @@ public class NettyTransporter implements Transporter {
 
     public static final String NAME = "netty";
 
+    // 在dubbo导出暴露服务的过程中 会调用bind方法
     @Override
     public RemotingServer bind(URL url, ChannelHandler handler) throws RemotingException {
+        // 返回一个NettyServer
         return new NettyServer(url, handler);
     }
 
+    // 在dubbo引用过程中 会调用connect方法来引用一个dubbo服务
     @Override
     public Client connect(URL url, ChannelHandler handler) throws RemotingException {
+        // 返回一个NettyClient
         return new NettyClient(url, handler);
     }
 

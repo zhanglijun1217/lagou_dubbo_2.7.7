@@ -117,6 +117,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     private static final ProxyFactory PROXY_FACTORY = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
     /**
+     * 引用接口的代理对象
      * The interface proxy reference
      */
     private transient volatile T ref;
@@ -150,11 +151,13 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         this.repository = ApplicationModel.getServiceRepository();
     }
 
+    // get方法 服务引用的入口
     public synchronized T get() {
         if (destroyed) {
             throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
         }
         if (ref == null) {
+            // 初始化ref 即 引用的dubbo接口的代理对象
             init();
         }
         return ref;
@@ -190,12 +193,14 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             bootstrap.init();
         }
 
+        // 配置检查和更新 把ReferenceBean中的配置更新为最新的配置
         checkAndUpdateSubConfigs();
 
         checkStubAndLocal(interfaceClass);
         ConfigValidationUtils.checkMock(interfaceClass, this);
 
         Map<String, String> map = new HashMap<String, String>();
+        // 添加side的参数
         map.put(SIDE_KEY, CONSUMER_SIDE);
 
         ReferenceConfigBase.appendRuntimeParameters(map);
@@ -255,6 +260,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        // ref赋值代理对象
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);
@@ -266,19 +272,31 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         initialized = true;
 
         // dispatch a ReferenceConfigInitializedEvent since 2.7.4
+        // 触发一个ReferenceConfigInitializedEvent事件
         dispatch(new ReferenceConfigInitializedEvent(this, invoker));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
     private T createProxy(Map<String, String> map) {
+        // 1. 生成服务引用的Invoker 主要是通过Protocol.refer(url)  服务可能有三种：
+                // （1）本地JVM的引用 直接生成InjvmInvoker返回
+                // （2）点对点配置的直连服务 url属性 直接进行Protocol.refer生成Invoker
+                //  (3) 从注册中心获取服务地址  Cluster.join(invokers)生成服务目录 伪装成1个Invoker
+        // 2. 利用ProxyFctory.getProxy(Invoker)来生成代理对返回
         if (shouldJvmRefer(map)) {
+            // 如果是应该是JVM的引用
+
+            // 设置consumer的协议是Injvm
             URL url = new URL(LOCAL_PROTOCOL, LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
+            // 调用InjvmProtocol.refer方法
             invoker = REF_PROTOCOL.refer(interfaceClass, url);
             if (logger.isInfoEnabled()) {
                 logger.info("Using injvm service " + interfaceClass.getName());
             }
         } else {
+            // 配置的点对点直连的url、 注册中心场景（多个Invoker）
             urls.clear();
+            // 点对点的直连模式
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
                 String[] us = SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
@@ -315,16 +333,20 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
 
             if (urls.size() == 1) {
+                // 如果url（注册中心）只有一个 直接调用Protocol的refer方法 获取一个Invoker
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
             } else {
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
+                    // 多个url 则循环 调用Protocol的refer方法 得到的每个Invoker添加到集合中。
                     invokers.add(REF_PROTOCOL.refer(interfaceClass, url));
                     if (UrlUtils.isRegistry(url)) {
                         registryURL = url; // use last registry url
                     }
                 }
+
+                // 多个Invokers 用ClUSTER.join 合并为一个Invoker
                 if (registryURL != null) { // registry url is available
                     // for multi-subscription scenario, use 'zone-aware' policy by default
                     URL u = registryURL.addParameterIfAbsent(CLUSTER_KEY, ZoneAwareCluster.NAME);
@@ -363,6 +385,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             metadataService.publishServiceDefinition(consumerURL);
         }
         // create service proxy
+        // 封装好的Invoker 调用ProxyFactory.getProxy(Invoker) 方法生成代理对象
         return (T) PROXY_FACTORY.getProxy(invoker, ProtocolUtils.isGeneric(generic));
     }
 

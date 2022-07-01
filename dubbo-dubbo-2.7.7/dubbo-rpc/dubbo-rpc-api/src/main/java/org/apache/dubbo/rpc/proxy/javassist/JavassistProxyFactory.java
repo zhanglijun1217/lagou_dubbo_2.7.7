@@ -29,24 +29,32 @@ import org.apache.dubbo.rpc.proxy.InvokerInvocationHandler;
  */
 public class JavassistProxyFactory extends AbstractProxyFactory {
 
+    // 获取代理  服务引用时生成dubbo服务的代理类
+    // 代理逻辑在InvokerInvocationHandler中
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getProxy(Invoker<T> invoker, Class<?>[] interfaces) {
         return (T) Proxy.getProxy(interfaces).newInstance(new InvokerInvocationHandler(invoker));
     }
 
+    // getInvoker 服务导出时使用 封装dubbo服务实现类为invoker
     @Override
     public <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) {
         // TODO Wrapper cannot handle this scenario correctly: the classname contains '$'
+        // 字节码生成的Wrapper实现类 对传入的proxy（export场景是dubbo服务实现类）进行包装
         final Wrapper wrapper = Wrapper.getWrapper(proxy.getClass().getName().indexOf('$') < 0 ? proxy.getClass() : type);
         return new AbstractProxyInvoker<T>(proxy, type, url) {
+            // 实现doInvoke方法 会从AbstractProxyInvoker.invoke中调用
             @Override
             protected Object doInvoke(T proxy, String methodName,
                                       Class<?>[] parameterTypes,
                                       Object[] arguments) throws Throwable {
+                // 调用Invoker.invoke方法时会委托给wrapper.invokeMethod方法
                 return wrapper.invokeMethod(proxy, methodName, parameterTypes, arguments);
             }
         };
+
+        // Invoker.invoke --> AbstractProxyInvoker.invoke --> AbstractProxyInvoker.doInvoke --> Wrapper.getWrapper.invokeMethod
     }
 
 }

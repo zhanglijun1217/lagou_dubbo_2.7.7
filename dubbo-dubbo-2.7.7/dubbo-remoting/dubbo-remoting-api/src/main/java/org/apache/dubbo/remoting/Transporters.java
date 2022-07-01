@@ -24,6 +24,7 @@ import org.apache.dubbo.remoting.transport.ChannelHandlerDispatcher;
 
 /**
  * Transporter facade. (API, Static, ThreadSafe)
+ * 构建RemotingServer的工具门面类
  */
 public class Transporters {
 
@@ -76,6 +77,7 @@ public class Transporters {
     }
 
     public static Transporter getTransporter() {
+        // Transporter自适应实现 默认Netty
         return ExtensionLoader.getExtensionLoader(Transporter.class).getAdaptiveExtension();
     }
 

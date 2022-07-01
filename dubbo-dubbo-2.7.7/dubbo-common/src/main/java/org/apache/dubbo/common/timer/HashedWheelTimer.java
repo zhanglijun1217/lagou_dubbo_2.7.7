@@ -221,10 +221,10 @@ public class HashedWheelTimer implements Timer {
      * @param threadFactory      a {@link ThreadFactory} that creates a
      *                           background {@link Thread} which is dedicated to
      *                           {@link TimerTask} execution.
-     * @param tickDuration       the duration between tick
+     * @param tickDuration       the duration between tick 每个槽之间的时间间隔
      * @param unit               the time unit of the {@code tickDuration}
-     * @param ticksPerWheel      the size of the wheel
-     * @param maxPendingTimeouts The maximum number of pending timeouts after which call to
+     * @param ticksPerWheel      the size of the wheel 每一圈的长度 槽的多少
+     * @param maxPendingTimeouts The maximum number of pending timeouts after which call to 最大定时任务数
      *                           {@code newTimeout} will result in
      *                           {@link java.util.concurrent.RejectedExecutionException}
      *                           being thrown. No maximum pending timeouts limit is assumed if
@@ -391,6 +391,7 @@ public class HashedWheelTimer implements Timer {
         return WORKER_STATE_SHUTDOWN == WORKER_STATE_UPDATER.get(this);
     }
 
+    // 时间轮 去加入一个新的任务
     @Override
     public Timeout newTimeout(TimerTask task, long delay, TimeUnit unit) {
         if (task == null) {
@@ -463,6 +464,7 @@ public class HashedWheelTimer implements Timer {
     private final class Worker implements Runnable {
         private final Set<Timeout> unprocessedTimeouts = new HashSet<Timeout>();
 
+        // tick周期
         private long tick;
 
         @Override
@@ -478,8 +480,10 @@ public class HashedWheelTimer implements Timer {
             startTimeInitialized.countDown();
 
             do {
+                // 等待下一个执行周期 即槽之间的时间间隔 比如每个槽之间是1s执行一次
                 final long deadline = waitForNextTick();
                 if (deadline > 0) {
+                    // 确认索引
                     int idx = (int) (tick & mask);
                     // 清理已取消的定时任务
                     processCancelledTasks();
@@ -504,7 +508,7 @@ public class HashedWheelTimer implements Timer {
                     break;
                 }
                 if (!timeout.isCancelled()) {
-                    // 状态变更之后 未被加入到槽中的额未取消任务加入到unprocessedTimeouts队列
+                    // 状态变更之后 未被加入到槽中的未取消任务加入到unprocessedTimeouts队列
                     unprocessedTimeouts.add(timeout);
                 }
             }
@@ -790,7 +794,7 @@ public class HashedWheelTimer implements Timer {
                 if (timeout.remainingRounds <= 0) {
                     next = remove(timeout);
                     if (timeout.deadline <= deadline) {
-                        // 调用expire 内部会执行run方法
+                        // 调用expire 内部会执行定时任务的run方法
                         timeout.expire();
                     } else {
                         // The timeout was placed into a wrong slot. This should never happen.

@@ -30,6 +30,7 @@ import java.util.Set;
  * table, and it is useful when accessed frequently.
  * <p></p>
  * This design is learning from {@see io.netty.util.concurrent.FastThreadLocal} which is in Netty.
+ * ThreadLocal性能高的版本 模仿Netty的FastThreadLocal
  */
 public class InternalThreadLocal<V> {
 
@@ -38,6 +39,7 @@ public class InternalThreadLocal<V> {
     private final int index;
 
     public InternalThreadLocal() {
+        // 初始化时创建index变量
         index = InternalThreadLocalMap.nextVariableIndex();
     }
 

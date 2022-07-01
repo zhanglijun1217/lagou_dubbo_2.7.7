@@ -37,6 +37,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.SERVICE_FILTER_K
 
 /**
  * ListenerProtocol
+ * Protocol接口的Wrapper实现 wrapper这里用构造函数参数是不是Protocol来标识 see ExtensionLoader.isWrapperClass()方法
  */
 public class ProtocolFilterWrapper implements Protocol {
 
@@ -46,17 +47,21 @@ public class ProtocolFilterWrapper implements Protocol {
         if (protocol == null) {
             throw new IllegalArgumentException("protocol == null");
         }
+        // 包装具体的protocol
         this.protocol = protocol;
     }
 
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
         Invoker<T> last = invoker;
+        // 获取所有自动激活的Filter扩展实现 key是filter链的配置 group是代表哪一段 （provider or  consumer）
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
 
         if (!filters.isEmpty()) {
+            // filter链是按照倒序（order从大到小）来包装invoker的
             for (int i = filters.size() - 1; i >= 0; i--) {
                 final Filter filter = filters.get(i);
                 final Invoker<T> next = last;
+                // 每一个Filter封装成匿名Invoker
                 last = new Invoker<T>() {
 
                     @Override
@@ -99,10 +104,12 @@ public class ProtocolFilterWrapper implements Protocol {
 
                         }
                         return asyncResult.whenCompleteWithContext((r, t) -> {
+                            // 在这里触发了Filter的Listener回调 异常xxx处理 正常返回xxx处理 比如TimeoutFilter中对超时的处理 就是在onResponse中处理
                             if (filter instanceof ListenableFilter) {
                                 ListenableFilter listenableFilter = ((ListenableFilter) filter);
                                 Filter.Listener listener = listenableFilter.listener(invocation);
                                 try {
+                                    // 利用Completable
                                     if (listener != null) {
                                         if (t == null) {
                                             listener.onResponse(r, invoker, invocation);
@@ -148,6 +155,8 @@ public class ProtocolFilterWrapper implements Protocol {
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         if (UrlUtils.isRegistry(invoker.getUrl())) {
+            // 注册中心的url registry://
+            // 直接去调用export 不用包装对应的链
             return protocol.export(invoker);
         }
         return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER));

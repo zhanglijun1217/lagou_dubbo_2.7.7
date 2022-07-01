@@ -43,6 +43,8 @@ import java.lang.annotation.Target;
 @Documented
 @EnableDubboConfig
 @DubboComponentScan
+// @EnableDubbo注解来标注在spring boot应用上 来开启dubbo接口暴露、引用（dubbo的@Service、@Reference注解的扫描）。还有dubbo config配置初始化为bean的过程
+// 主要功能在@EnableDubboConfig、@EnableComponentScan
 public @interface EnableDubbo {
 
     /**

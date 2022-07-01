@@ -86,6 +86,8 @@ import static org.springframework.util.ClassUtils.resolveClassName;
  * @see AnnotationBeanDefinitionParser
  * @see BeanDefinitionRegistryPostProcessor
  * @since 2.7.7
+ * ServiceClassPostProcessor是BeanDefinitionRegistryPostProcessor的实现 Bean定义注册的后置处理器
+ *
  */
 public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProcessor, EnvironmentAware,
         ResourceLoaderAware, BeanClassLoaderAware {
@@ -122,15 +124,18 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
         this.packagesToScan = packagesToScan;
     }
 
+    //此方法中处理 dubbo @Service注解
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 
         // @since 2.7.5
         registerBeans(registry, DubboBootstrapApplicationListener.class);
 
+        // 需要扫描的路径
         Set<String> resolvedPackagesToScan = resolvePackagesToScan(packagesToScan);
 
         if (!CollectionUtils.isEmpty(resolvedPackagesToScan)) {
+            // 去注册ServiceBean
             registerServiceBeans(resolvedPackagesToScan, registry);
         } else {
             if (logger.isWarnEnabled()) {
@@ -148,21 +153,25 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
      */
     private void registerServiceBeans(Set<String> packagesToScan, BeanDefinitionRegistry registry) {
 
+        // 创建一个dubbo类路径扫描器 去扫描
         DubboClassPathBeanDefinitionScanner scanner =
                 new DubboClassPathBeanDefinitionScanner(registry, environment, resourceLoader);
 
         BeanNameGenerator beanNameGenerator = resolveBeanNameGenerator(registry);
 
+        // 先注册类本身的bean到Spring容器中
         scanner.setBeanNameGenerator(beanNameGenerator);
 
         // refactor @since 2.7.7
         serviceAnnotationTypes.forEach(annotationType -> {
+            // 要扫描的@Service注解 兼容版本
             scanner.addIncludeFilter(new AnnotationTypeFilter(annotationType));
         });
 
         for (String packageToScan : packagesToScan) {
 
             // Registers @Service Bean first
+            // scan去扫描路径下的 @Service 注解Bean
             scanner.scan(packageToScan);
 
             // Finds all BeanDefinitionHolders of @Service whether @ComponentScan scans or not.
@@ -172,6 +181,7 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
             if (!CollectionUtils.isEmpty(beanDefinitionHolders)) {
 
                 for (BeanDefinitionHolder beanDefinitionHolder : beanDefinitionHolders) {
+                    // 去注册每个Dubbo服务接口的ServiceBean
                     registerServiceBean(beanDefinitionHolder, registry, scanner);
                 }
 
@@ -276,6 +286,7 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
     private void registerServiceBean(BeanDefinitionHolder beanDefinitionHolder, BeanDefinitionRegistry registry,
                                      DubboClassPathBeanDefinitionScanner scanner) {
 
+        // 注解@Service的类
         Class<?> beanClass = resolveClass(beanDefinitionHolder);
 
         Annotation service = findServiceAnnotation(beanClass);
@@ -283,16 +294,21 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
         /**
          * The {@link AnnotationAttributes} of @Service annotation
          */
+        // @Service的注释信息
         AnnotationAttributes serviceAnnotationAttributes = getAnnotationAttributes(service, false, false);
 
+        // 找到类的接口
         Class<?> interfaceClass = resolveServiceInterfaceClass(serviceAnnotationAttributes, beanClass);
 
+        // 本身类在spring容器中的bean名称
         String annotatedServiceBeanName = beanDefinitionHolder.getBeanName();
 
+        // 构建serviceBean的BeanDefinition名称
         AbstractBeanDefinition serviceBeanDefinition =
                 buildServiceBeanDefinition(service, serviceAnnotationAttributes, interfaceClass, annotatedServiceBeanName);
 
         // ServiceBean Bean name
+        // 生成ServiceBean的名称
         String beanName = generateServiceBeanName(serviceAnnotationAttributes, interfaceClass);
 
         if (scanner.checkCandidate(beanName, serviceBeanDefinition)) { // check duplicated candidate bean

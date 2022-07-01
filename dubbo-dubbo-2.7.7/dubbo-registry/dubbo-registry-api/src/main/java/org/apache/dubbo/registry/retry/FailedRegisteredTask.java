@@ -23,6 +23,7 @@ import org.apache.dubbo.registry.support.FailbackRegistry;
 
 /**
  * FailedRegisteredTask
+ * 注册中心注册失败之后的重试任务
  */
 public final class FailedRegisteredTask extends AbstractRetryTask {
 
@@ -34,7 +35,11 @@ public final class FailedRegisteredTask extends AbstractRetryTask {
 
     @Override
     protected void doRetry(URL url, FailbackRegistry registry, Timeout timeout) {
+        // 实现父类设置的doRetry实现
+
+        // 再去做注册逻辑
         registry.doRegister(url);
+        // 成功之后移除重试的定时任务
         registry.removeFailedRegisteredTask(url);
     }
 }

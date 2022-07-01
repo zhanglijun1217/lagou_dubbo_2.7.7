@@ -34,18 +34,23 @@ import static org.apache.dubbo.config.spring.util.DubboBeanUtils.registerCommonB
  * @see DubboConfigConfiguration
  * @see Ordered
  * @since 2.5.8
+ * dubbo properties配置文件解析器
  */
 public class DubboConfigConfigurationRegistrar implements ImportBeanDefinitionRegistrar {
 
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
 
+        // 获取EnableDubboConfig注解信息
         AnnotationAttributes attributes = AnnotationAttributes.fromMap(
                 importingClassMetadata.getAnnotationAttributes(EnableDubboConfig.class.getName()));
 
+        // multiple的配置值 multiple就是 dubbo.applications（复数）这种多个配置
         boolean multiple = attributes.getBoolean("multiple");
 
         // Single Config Bindings
+        // 注册Single配置Bean定义 内部主要是@EnableConfigurationBeanBindings注解再次import了具体配置bean定义的注册（ConfigurationBeanBindingsRegister）—
+        // ，并且注册了对应的后置处理器去解析具体配置值
         registerBeans(registry, DubboConfigConfiguration.Single.class);
 
         if (multiple) { // Since 2.6.6 https://github.com/apache/dubbo/issues/3193

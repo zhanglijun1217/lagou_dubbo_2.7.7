@@ -34,6 +34,8 @@ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
  * Perform check whether given provider token is matching with remote token or not. If it does not match
  * it will not allow to invoke remote method.
  *
+ * 调用时候match token
+ * url中包含token参数才启用TokenFilter
  * @see Filter
  */
 @Activate(group = CommonConstants.PROVIDER, value = TOKEN_KEY)
@@ -42,8 +44,10 @@ public class TokenFilter implements Filter {
     @Override
     public Result invoke(Invoker<?> invoker, Invocation inv)
             throws RpcException {
+        // url中token参数
         String token = invoker.getUrl().getParameter(TOKEN_KEY);
         if (ConfigUtils.isNotEmpty(token)) {
+            // 如果存在token 看下invocation中是否有相同的token
             Class<?> serviceType = invoker.getInterface();
             Map<String, Object> attachments = inv.getObjectAttachments();
             String remoteToken = (attachments == null ? null : (String) attachments.get(TOKEN_KEY));

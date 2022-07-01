@@ -45,6 +45,9 @@ import static org.apache.dubbo.common.utils.ReflectUtils.defaultReturn;
  * AsyncRpcResult does not contain any concrete value (except the underlying value bring by CompletableFuture), consider it as a status transfer node.
  * {@link #getValue()} and {@link #getException()} are all inherited from {@link Result} interface, implementing them are mainly
  * for compatibility consideration. Because many legacy {@link Filter} implementation are most possibly to call getValue directly.
+ *
+ * AsyncRpcResult代表异步的一个未完成的RPC调用 其中会记录RPC调用的信息（包含关联的RpcContext和Invocation）
+ *
  */
 public class AsyncRpcResult implements Result {
     private static final Logger logger = LoggerFactory.getLogger(AsyncRpcResult.class);
@@ -52,18 +55,24 @@ public class AsyncRpcResult implements Result {
     /**
      * RpcContext may already have been changed when callback happens, it happens when the same thread is used to execute another RPC call.
      * So we should keep the reference of current RpcContext instance and restore it before callback being executed.
+     * ，而真正执行 AsyncRpcResult 上添加的回调方法的线程可能先后处理过多个不同的 AsyncRpcResult，所以我们需要传递并保存当前的 RpcContext。
      */
     private RpcContext storedContext;
     private RpcContext storedServerContext;
+    // RPC调用关联的线程池
     private Executor executor;
 
+    // RPC调用关联的invocation
     private Invocation invocation;
 
+    // 在客户端：保存request请求之后 生成的Future 内部封装的一般是DefaultFuture @See DubboInvoker、HeaderExchangeChannel
+    // 在服务端：保存在调用了真正Dubbo服务返回值封装的CompletableFuture @See AbstractProxyInvoker
     private CompletableFuture<AppResponse> responseFuture;
 
     public AsyncRpcResult(CompletableFuture<AppResponse> future, Invocation invocation) {
         this.responseFuture = future;
         this.invocation = invocation;
+        // 初始化时保存rpcContext
         this.storedContext = RpcContext.getContext();
         this.storedServerContext = RpcContext.getServerContext();
     }
@@ -166,9 +175,11 @@ public class AsyncRpcResult implements Result {
     @Override
     public Result get() throws InterruptedException, ExecutionException {
         if (executor != null && executor instanceof ThreadlessExecutor) {
+            // 针对ThreadlessExecutor的特殊处理，这里调用waitAndDrain()等待响应
             ThreadlessExecutor threadlessExecutor = (ThreadlessExecutor) executor;
             threadlessExecutor.waitAndDrain();
         }
+        // responseFuture会在这里阻塞等待
         return responseFuture.get();
     }
 
@@ -178,6 +189,7 @@ public class AsyncRpcResult implements Result {
             ThreadlessExecutor threadlessExecutor = (ThreadlessExecutor) executor;
             threadlessExecutor.waitAndDrain();
         }
+        // responseFuture会在这里阻塞等待
         return responseFuture.get(timeout, unit);
     }
 
@@ -202,6 +214,7 @@ public class AsyncRpcResult implements Result {
 
     @Override
     public <U> CompletableFuture<U> thenApply(Function<Result, ? extends U> fn) {
+        // @See
         return this.responseFuture.thenApply(fn);
     }
 

@@ -18,6 +18,7 @@ package org.apache.dubbo.common.extension;
 
 /**
  * ExtensionFactory
+ * 自适应实现是 AdaptiveExtensionFactory @Adaptive注解直接标注在类上
  */
 @SPI
 public interface ExtensionFactory {

@@ -108,7 +108,9 @@ public class WrappedChannelHandler implements ChannelHandlerDelegate {
      */
     public ExecutorService getPreferredExecutorService(Object msg) {
         if (msg instanceof Response) {
+            // 如果处理的消息是 返回的结果响应
             Response response = (Response) msg;
+            // 根据请求id 在客户端 取出之前发送请求生成的DefaultFuture
             DefaultFuture responseFuture = DefaultFuture.getFuture(response.getId());
             // a typical scenario is the response returned after timeout, the timeout response may has completed the future
             if (responseFuture == null) {
@@ -121,6 +123,7 @@ public class WrappedChannelHandler implements ChannelHandlerDelegate {
                 return executor;
             }
         } else {
+            // 如果处理的消息是请求直接用共享的线程池 请求对应-->DubboServerHandler线程池  响应对应--> DubboClientHandler线程
             return getSharedExecutorService();
         }
     }
@@ -132,6 +135,7 @@ public class WrappedChannelHandler implements ChannelHandlerDelegate {
      */
     public ExecutorService getSharedExecutorService() {
         ExecutorRepository executorRepository =
+                // SPI去获取
                 ExtensionLoader.getExtensionLoader(ExecutorRepository.class).getDefaultExtension();
         ExecutorService executor = executorRepository.getExecutor(url);
         if (executor == null) {

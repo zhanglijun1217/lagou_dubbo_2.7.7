@@ -18,6 +18,7 @@ package org.apache.dubbo.rpc;
 
 /**
  * Exporter. (API/SPI, Prototype, ThreadSafe)
+ * Exporter接口  Protocol.export的结果
  *
  * @see org.apache.dubbo.rpc.Protocol#export(Invoker)
  * @see org.apache.dubbo.rpc.ExporterListener
@@ -27,12 +28,14 @@ public interface Exporter<T> {
 
     /**
      * get invoker.
+     * 获取内部封装的接口
      *
      * @return invoker
      */
     Invoker<T> getInvoker();
 
     /**
+     * 做dubbo服务接口的退出
      * unexport.
      * <p>
      * <code>

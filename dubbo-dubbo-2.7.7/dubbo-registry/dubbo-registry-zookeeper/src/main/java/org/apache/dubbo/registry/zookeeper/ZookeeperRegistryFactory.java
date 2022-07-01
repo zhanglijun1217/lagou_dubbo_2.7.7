@@ -23,10 +23,12 @@ import org.apache.dubbo.remoting.zookeeper.ZookeeperTransporter;
 
 /**
  * ZookeeperRegistryFactory.
- *
+ * 创建ZkRegistry的工厂
  */
 public class ZookeeperRegistryFactory extends AbstractRegistryFactory {
 
+
+    // 这里可以通过SPI的IOC功能 反射注入SPI实现
     private ZookeeperTransporter zookeeperTransporter;
 
     /**

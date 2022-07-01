@@ -54,6 +54,7 @@ public class HeaderExchangeServer implements ExchangeServer {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    // 存放交换层Transports.bind 返回的RemotingServer dubbo协议下可以理解为是NettyServer
     private final RemotingServer server;
     private AtomicBoolean closed = new AtomicBoolean(false);
 

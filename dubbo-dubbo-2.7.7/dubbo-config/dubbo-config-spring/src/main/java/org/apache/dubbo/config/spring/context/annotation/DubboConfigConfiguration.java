@@ -55,6 +55,9 @@ public class DubboConfigConfiguration {
     /**
      * Single Dubbo {@link AbstractConfig Config} Bean Binding
      */
+    // 开启import各个具体的配置bean 解析内部的每一个BeanBinding 生成对应的configBean，
+    // 且注册一个后置处理器（ConfigurationBeanBindingPostProcessor）
+    // 去利用Spring的DataBinder去将properties中的配置值映射到对应的configBean中
     @EnableConfigurationBeanBindings({
             @EnableConfigurationBeanBinding(prefix = "dubbo.application", type = ApplicationConfig.class),
             @EnableConfigurationBeanBinding(prefix = "dubbo.module", type = ModuleConfig.class),

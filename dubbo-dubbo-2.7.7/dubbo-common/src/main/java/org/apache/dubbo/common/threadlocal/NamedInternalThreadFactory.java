@@ -40,6 +40,7 @@ public class NamedInternalThreadFactory extends NamedThreadFactory {
     @Override
     public Thread newThread(Runnable runnable) {
         String name = mPrefix + mThreadNum.getAndIncrement();
+        // 这个工厂创建的都是InternalThread
         InternalThread ret = new InternalThread(mGroup, runnable, name, 0);
         ret.setDaemon(mDaemon);
         return ret;

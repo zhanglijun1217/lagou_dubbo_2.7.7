@@ -39,6 +39,7 @@ public final class TimeoutCountDown implements Comparable<TimeoutCountDown> {
 
   public boolean isExpired() {
     if (!expired) {
+      // 去计算是否超时
       if (deadlineInNanos - System.nanoTime() <= 0) {
         expired = true;
       } else {

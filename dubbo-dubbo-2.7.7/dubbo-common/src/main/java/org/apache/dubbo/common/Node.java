@@ -18,6 +18,7 @@ package org.apache.dubbo.common;
 
 /**
  * Node. (API/SPI, Prototype, ThreadSafe)
+ * 节点：一个抽象接口 可以是Provider节点、Consumer节点 也可以是注册中心节点
  */
 public interface Node {
 

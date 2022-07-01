@@ -21,15 +21,19 @@ import org.apache.dubbo.common.URL;
 
 /**
  * Registry. (SPI, Prototype, ThreadSafe)
+ * 实现了注册服务接口 RegistryService
+ * 实现了Node接口 代表一个节点服务
  *
  * @see org.apache.dubbo.registry.RegistryFactory#getRegistry(URL)
  * @see org.apache.dubbo.registry.support.AbstractRegistry
  */
 public interface Registry extends Node, RegistryService {
+    // 注册 委托给RegistryService中的register()方法
     default void reExportRegister(URL url) {
         register(url);
     }
 
+    // 取消注册
     default void reExportUnregister(URL url) {
         unregister(url);
     }

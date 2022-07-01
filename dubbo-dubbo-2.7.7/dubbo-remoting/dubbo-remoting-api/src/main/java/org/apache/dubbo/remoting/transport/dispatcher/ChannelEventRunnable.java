@@ -52,6 +52,7 @@ public class ChannelEventRunnable implements Runnable {
 
     @Override
     public void run() {
+        // Run方法中就是针对不同的state 去调用handler不同的方法
         if (state == ChannelState.RECEIVED) {
             try {
                 handler.received(channel, message);

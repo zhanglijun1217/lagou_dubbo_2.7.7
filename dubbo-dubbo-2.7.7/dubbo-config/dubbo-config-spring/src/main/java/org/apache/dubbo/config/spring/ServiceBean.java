@@ -34,7 +34,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 
 /**
  * ServiceFactoryBean
- *
+ * ServiceBean 从某个版本之后不去单独接收Spring上下文刷新事件去export 而是通过统一的DubboBootstrap入口来暴露服务
  * @export
  */
 public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean, DisposableBean,

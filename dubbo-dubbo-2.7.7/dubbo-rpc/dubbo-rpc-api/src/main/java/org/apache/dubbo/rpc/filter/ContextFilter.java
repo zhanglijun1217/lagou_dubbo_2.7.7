@@ -52,6 +52,7 @@ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
 /**
  * ContextFilter set the provider RpcContext with invoker, invocation, local port it is using and host for
  * current execution thread.
+ * 服务提供者端的上下文过滤器
  *
  * @see RpcContext
  */
@@ -81,6 +82,7 @@ public class ContextFilter implements Filter, Filter.Listener {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // invocation中携带的attachments
         Map<String, Object> attachments = invocation.getObjectAttachments();
         if (attachments != null) {
             Map<String, Object> newAttach = new HashMap<>(attachments.size());
@@ -94,6 +96,7 @@ public class ContextFilter implements Filter, Filter.Listener {
         }
 
         RpcContext context = RpcContext.getContext();
+        // 设置RpcContext
         context.setInvoker(invoker)
                 .setInvocation(invocation)
 //                .setAttachments(attachments)  // merged from dubbox
@@ -128,6 +131,8 @@ public class ContextFilter implements Filter, Filter.Listener {
             context.clearAfterEachInvoke(false);
             return invoker.invoke(invocation);
         } finally {
+            // 最后调用完成之后 清除RpcContext
+
             context.clearAfterEachInvoke(true);
             // IMPORTANT! For async scenario, we must remove context from current thread, so we always create a new RpcContext for the next invoke for the same thread.
             RpcContext.removeContext(true);

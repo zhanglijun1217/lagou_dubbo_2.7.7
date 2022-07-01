@@ -48,13 +48,16 @@ import static org.springframework.beans.factory.support.BeanDefinitionBuilder.ro
  * @see ReferenceAnnotationBeanPostProcessor
  * @since 2.5.7
  */
+// DubboComponentScanRegistrar dubbo扫描@Service和@Reference注解 解析
 public class DubboComponentScanRegistrar implements ImportBeanDefinitionRegistrar {
 
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
 
+        // 获取要扫描的包路径
         Set<String> packagesToScan = getPackagesToScan(importingClassMetadata);
 
+        // 注册路径下处理@Service注解的Bean后置处理器
         registerServiceAnnotationBeanPostProcessor(packagesToScan, registry);
 
         // @since 2.7.6 Register the common beans

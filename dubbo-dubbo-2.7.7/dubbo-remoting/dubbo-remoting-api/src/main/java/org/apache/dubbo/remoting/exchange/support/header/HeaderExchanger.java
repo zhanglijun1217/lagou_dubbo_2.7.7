@@ -34,14 +34,32 @@ public class HeaderExchanger implements Exchanger {
 
     public static final String NAME = "header";
 
+    // 在服务引用过程中 进行connect
     @Override
     public ExchangeClient connect(URL url, ExchangeHandler handler) throws RemotingException {
+        // 逻辑和bind其实是相同的 为handler绑定外层handler 再调用Transporter去初始化和启动NettyClient 用于发送请求
+        // 返回了包装的NettyClient
         return new HeaderExchangeClient(Transporters.connect(url, new DecodeHandler(new HeaderExchangeHandler(handler))), true);
     }
 
+    //在暴露服务的过程中 绑定handler给一个RemotingServer 返回一个ExchangeServer
     @Override
     public ExchangeServer bind(URL url, ExchangeHandler handler) throws RemotingException {
-        return new HeaderExchangeServer(Transporters.bind(url, new DecodeHandler(new HeaderExchangeHandler(handler))));
+        // 传入的handler是 requestHandler 类型是ExchangeHandlerAdapter
+
+        // Transporters.bind 会在内部启动NettyServer 返回的也是RemotingServer
+        // 对handler封装了很多其他的Handler 每个Handler都有自己处理的逻辑 比如DecodeHandler就是解码
+
+        // 返回一个HeaderExchangeServer 包装RemotingServer
+        return new HeaderExchangeServer(
+                // Transporters门面类 构建RemotingServer （默认返回一个NettyServer）
+                Transporters.bind(url,
+                    // 对handler包装 HeaderExchangeHandler、DecodeHandler
+                    new DecodeHandler(
+                            new HeaderExchangeHandler(handler)
+                    )
+                )
+        );
     }
 
 }

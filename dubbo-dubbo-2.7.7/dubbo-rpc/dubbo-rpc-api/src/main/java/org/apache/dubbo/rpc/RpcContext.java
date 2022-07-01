@@ -43,10 +43,13 @@ import static org.apache.dubbo.rpc.Constants.RETURN_KEY;
 /**
  * Thread local context. (API, ThreadLocal, ThreadSafe)
  * <p>
+ *    RPC上下文 每次请求发出或者接收到RpcContext都会变更
  * Note: RpcContext is a temporary state holder. States in RpcContext changes every time when request is sent or received.
  * For example: A invokes B, then B invokes C. On service B, RpcContext saves invocation info from A to B before B
  * starts invoking C, and saves invocation info from B to C after B invokes C.
  *
+ * RpcContext 本质上是一个使用 ThreadLocal 实现的临时状态记录器，当接收到 RPC 请求，或发起 RPC 请求时，RpcContext 的状态都会变化。
+ * 比如：A调B，B再调C，则B机器上，在B调C之前，RpcContext记录的是A调B的信息，在B调C之后，RpcContext记录的是B调C的信息。
  * @export
  * @see org.apache.dubbo.rpc.filter.ContextFilter
  */
@@ -54,6 +57,7 @@ public class RpcContext {
 
     /**
      * use internal thread local to improve performance
+     * InternalThreadLocal提高性能
      */
     // FIXME REQUEST_CONTEXT
     private static final InternalThreadLocal<RpcContext> LOCAL = new InternalThreadLocal<RpcContext>() {
@@ -71,21 +75,28 @@ public class RpcContext {
         }
     };
 
+    // attachments 记录上下文的键值对 会被带到远端
     protected final Map<String, Object> attachments = new HashMap<>();
+    // valuess 记录上下文的键值对 不会被带到远端
     private final Map<String, Object> values = new HashMap<String, Object>();
 
     private List<URL> urls;
 
     private URL url;
 
+    // 方法名称
     private String methodName;
 
+    // 方法参数类型
     private Class<?>[] parameterTypes;
 
+    // 方法参数
     private Object[] arguments;
 
+    // 本地地址
     private InetSocketAddress localAddress;
 
+    // 远端地址
     private InetSocketAddress remoteAddress;
 
     private String remoteApplicationName;
@@ -101,6 +112,7 @@ public class RpcContext {
     // we want these objects to be as generic as possible
     private Object request;
     private Object response;
+    // 异步的上下文
     private AsyncContext asyncContext;
 
     private boolean remove = true;
@@ -713,7 +725,7 @@ public class RpcContext {
 
     /**
      * Async invocation. Timeout will be handled even if <code>Future.get()</code> is not called.
-     *
+     * 通过Rpccontext直接发起异步调用
      * @param callable
      * @return get the return result from <code>future.get()</code>
      */
@@ -725,11 +737,13 @@ public class RpcContext {
                 final T o = callable.call();
                 //local invoke will return directly
                 if (o != null) {
+                    // 这里处理了直接本地调用 但是dubbo接口是原生返回类型 那么这里会有个bug 会走到这个分支 然后直接返回原生类型的默认值。
                     if (o instanceof CompletableFuture) {
                         return (CompletableFuture<T>) o;
                     }
                     return CompletableFuture.completedFuture(o);
                 } else {
+                    // 为null才是正常的异步调用结果 通过下面返回封装好的CompletableFuture对象
                     // The service has a normal sync method signature, should get future from RpcContext.
                 }
             } catch (Exception e) {
@@ -742,6 +756,7 @@ public class RpcContext {
             exceptionFuture.completeExceptionally(e);
             return exceptionFuture;
         }
+        // 返回上下文中的future对象 方便拿到结果
         return ((CompletableFuture<T>) getContext().getFuture());
     }
 

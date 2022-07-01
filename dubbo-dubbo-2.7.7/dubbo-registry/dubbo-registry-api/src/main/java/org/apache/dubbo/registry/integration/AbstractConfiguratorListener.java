@@ -42,7 +42,9 @@ public abstract class AbstractConfiguratorListener implements ConfigurationListe
             GovernanceRuleRepository.class).getDefaultExtension();
 
     protected final void initWith(String key) {
+        // 添加一个listener
         ruleRepository.addListener(key, this);
+        // 得到应用级别的配置
         String rawConfig = ruleRepository.getRule(key, DynamicConfiguration.DEFAULT_GROUP);
         if (!StringUtils.isEmpty(rawConfig)) {
             genConfiguratorsFromRawRule(rawConfig);

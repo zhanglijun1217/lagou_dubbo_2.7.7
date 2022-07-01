@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * RegistryService. (SPI, Prototype, ThreadSafe)
+ * 抽象了注册服务的基础行为
  *
  * @see org.apache.dubbo.registry.Registry
  * @see org.apache.dubbo.registry.RegistryFactory#getRegistry(URL)
@@ -39,6 +40,7 @@ public interface RegistryService {
      * 5. Allow URLs which have the same URL but different parameters to coexist,they can't cover each other.<br>
      *
      * @param url  Registration information , is not allowed to be empty, e.g: dubbo://10.20.153.10/org.apache.dubbo.foo.BarService?version=1.0.0&application=kylin
+     * 注册一个url
      */
     void register(URL url);
 
@@ -50,6 +52,7 @@ public interface RegistryService {
      * 2. Unregister according to the full url match.<br>
      *
      * @param url Registration information , is not allowed to be empty, e.g: dubbo://10.20.153.10/org.apache.dubbo.foo.BarService?version=1.0.0&application=kylin
+     *  取消注册一个url
      */
     void unregister(URL url);
 
@@ -67,6 +70,8 @@ public interface RegistryService {
      *
      * @param url      Subscription condition, not allowed to be empty, e.g. consumer://10.20.153.10/org.apache.dubbo.foo.BarService?version=1.0.0&application=kylin
      * @param listener A listener of the change event, not allowed to be empty
+     *
+     *  订阅一个url 附带一个回调通知的listener
      */
     void subscribe(URL url, NotifyListener listener);
 
@@ -79,11 +84,13 @@ public interface RegistryService {
      *
      * @param url      Subscription condition, not allowed to be empty, e.g. consumer://10.20.153.10/org.apache.dubbo.foo.BarService?version=1.0.0&application=kylin
      * @param listener A listener of the change event, not allowed to be empty
+     * 取消订阅一个url
      */
     void unsubscribe(URL url, NotifyListener listener);
 
     /**
      * Query the registered data that matches the conditions. Corresponding to the push mode of the subscription, this is the pull mode and returns only one result.
+     * 查询符合条件的注册数据，它与 subscribe() 方法有一定的区别，subscribe() 方法采用的是 push 模式，lookup() 方法采用的是 pull 模式。
      *
      * @param url Query condition, is not allowed to be empty, e.g. consumer://10.20.153.10/org.apache.dubbo.foo.BarService?version=1.0.0&application=kylin
      * @return The registered information list, which may be empty, the meaning is the same as the parameters of {@link org.apache.dubbo.registry.NotifyListener#notify(List<URL>)}.

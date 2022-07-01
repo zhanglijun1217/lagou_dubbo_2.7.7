@@ -68,9 +68,15 @@ public abstract class AbstractZookeeperClient<TargetDataListener, TargetChildLis
     }
 
 
+    /**
+     * zk创建一个znode 如果path是/aaa/bbb 会递归创建子节点
+     * @param path znode的path
+     * @param ephemeral 是否为临时节点
+     */
     @Override
     public void create(String path, boolean ephemeral) {
         if (!ephemeral) {
+            // 非临时节点
             if(persistentExistNodePath.contains(path)){
                 return;
             }
@@ -81,11 +87,14 @@ public abstract class AbstractZookeeperClient<TargetDataListener, TargetChildLis
         }
         int i = path.lastIndexOf('/');
         if (i > 0) {
+            // 递归去创建
             create(path.substring(0, i), false);
         }
         if (ephemeral) {
+            // 临时节点
             createEphemeral(path);
         } else {
+            // 非临时节点
             createPersistent(path);
             persistentExistNodePath.add(path);
         }
@@ -108,7 +117,9 @@ public abstract class AbstractZookeeperClient<TargetDataListener, TargetChildLis
     @Override
     public List<String> addChildListener(String path, final ChildListener listener) {
         ConcurrentMap<ChildListener, TargetChildListener> listeners = childListeners.computeIfAbsent(path, k -> new ConcurrentHashMap<>());
+        // 包装一个listener 兼容curator api
         TargetChildListener targetListener = listeners.computeIfAbsent(listener, k -> createTargetChildListener(path, k));
+        // 创建watcher监听
         return addTargetChildListener(path, targetListener);
     }
 

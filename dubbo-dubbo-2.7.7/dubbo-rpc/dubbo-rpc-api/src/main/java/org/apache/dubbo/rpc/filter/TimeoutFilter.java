@@ -35,6 +35,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.TIME_COUNTDOWN_K
 
 /**
  * Log any invocation timeout, but don't stop server from running
+ * 服务端超时的filter处理
  */
 @Activate(group = CommonConstants.PROVIDER)
 public class TimeoutFilter implements Filter, Filter.Listener {
@@ -46,14 +47,18 @@ public class TimeoutFilter implements Filter, Filter.Listener {
         return invoker.invoke(invocation);
     }
 
+    // 执行完Invoker.invoke之后的回调 实现在org.apache.dubbo.rpc.Invoker.invoke中回调
     @Override
     public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
+        // 拿到写在上下文中的timeouCountDown
         Object obj = RpcContext.getContext().get(TIME_COUNTDOWN_KEY);
         if (obj != null) {
             TimeoutCountDown countDown = (TimeoutCountDown) obj;
             if (countDown.isExpired()) {
+                // 如果超时 结果调用clear()方法清除Invoker得到的返回值
                 ((AppResponse) appResponse).clear(); // clear response in case of timeout.
                 if (logger.isWarnEnabled()) {
+                    // 服务端只是去打印warn日志
                     logger.warn("invoke timed out. method: " + invocation.getMethodName() + " arguments: " +
                             Arrays.toString(invocation.getArguments()) + " , url is " + invoker.getUrl() +
                             ", invoke elapsed " + countDown.elapsedMillis() + " ms.");

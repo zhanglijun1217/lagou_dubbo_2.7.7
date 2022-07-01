@@ -82,6 +82,7 @@ final public class NettyCodecAdapter {
             // decode object.
             do {
                 int saveReaderIndex = message.readerIndex();
+                // 委托给codec来实现解码
                 Object msg = codec.decode(channel, message);
                 if (msg == Codec2.DecodeResult.NEED_MORE_INPUT) {
                     message.readerIndex(saveReaderIndex);

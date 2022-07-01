@@ -81,6 +81,7 @@ public abstract class AbstractRetryTask implements TimerTask {
         this.registry = registry;
         this.taskName = taskName;
         cancel = false;
+        // 重试间隔是根据url的配置来的
         this.retryPeriod = url.getParameter(REGISTRY_RETRY_PERIOD_KEY, DEFAULT_REGISTRY_RETRY_PERIOD);
         this.retryTimes = url.getParameter(REGISTRY_RETRY_TIMES_KEY, DEFAULT_REGISTRY_RETRY_TIMES);
     }

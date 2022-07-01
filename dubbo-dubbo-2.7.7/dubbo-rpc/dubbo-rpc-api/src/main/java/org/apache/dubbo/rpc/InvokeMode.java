@@ -18,6 +18,11 @@ package org.apache.dubbo.rpc;
 
 public enum InvokeMode {
 
-    SYNC, ASYNC, FUTURE;
+    // 同步调用
+    SYNC,
+    // 异步调用
+    ASYNC,
+    // 返回值是CompleatbleFutue的服务端异步调用
+    FUTURE;
 
 }

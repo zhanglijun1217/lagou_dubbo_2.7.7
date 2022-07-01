@@ -31,6 +31,8 @@ public class ChannelHandlers {
     }
 
     public static ChannelHandler wrap(ChannelHandler handler, URL url) {
+        // 包装传入的handler
+        // 比如在服务导出的过程中传入的是handler是： DecodeHandler--> HeaderExchangeHandler --> ExchangeHandlerAdapter（requestHandler)
         return ChannelHandlers.getInstance().wrapInternal(handler, url);
     }
 
@@ -43,7 +45,16 @@ public class ChannelHandlers {
     }
 
     protected ChannelHandler wrapInternal(ChannelHandler handler, URL url) {
-        return new MultiMessageHandler(new HeartbeatHandler(ExtensionLoader.getExtensionLoader(Dispatcher.class)
-                .getAdaptiveExtension().dispatch(handler, url)));
+        // 将传入的handler依次包装 MultiMessageHandler、HeartbeatHandler、AllDispatcherHandler
+        // 包装结果 MultiMessageHandler -->HeartbeatHandler--> AllDispatcherHandler --> DecodeHandler--> HeaderExchangeHandler --> ExchangeHandlerAdapter（requestHandler)
+
+        // 包装MultiMessageHandler
+        return new MultiMessageHandler(
+                // 包装HeartbeatHandler 处理心跳响应和心跳请求
+                new HeartbeatHandler(
+                        // Dispatcher自适应性获取 默认是AllDispatcherHandler
+                        ExtensionLoader.getExtensionLoader(Dispatcher.class).getAdaptiveExtension().dispatch(handler, url)
+                )
+        );
     }
 }

@@ -48,6 +48,9 @@ public interface Protocol {
      * @param invoker Service invoker
      * @return exporter reference for exported service, useful for unexport the service later
      * @throws RpcException thrown when error occurs during export the service, for example: port is occupied
+     * 协议的导出
+     *  参数：可执行的Invoker。See：ProxyFactory.getInvoker()
+     *  返回值：Exporter 主要封装了可执行的Invoker和唯一标识 方便调用时找到具体可执行的Invoker；同时还提供了unexport的方法，方便服务下线
      */
     @Adaptive
     <T> Exporter<T> export(Invoker<T> invoker) throws RpcException;
@@ -66,6 +69,9 @@ public interface Protocol {
      * @param url  URL address for the remote service
      * @return invoker service's local proxy
      * @throws RpcException when there's any error while connecting to the service provider
+     * 协议引用方法
+     *  参数：引用的类型和url see ProxyFactory.getProxy(Invoker<T> invoker)
+     *  返回值：可调用的代理对象Invoker 屏蔽了远程调用的细节
      */
     @Adaptive
     <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException;

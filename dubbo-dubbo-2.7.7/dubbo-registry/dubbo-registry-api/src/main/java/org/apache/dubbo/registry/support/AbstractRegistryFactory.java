@@ -51,6 +51,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
     // The lock for the acquisition process of the registry
     protected static final ReentrantLock LOCK = new ReentrantLock();
 
+    // 注册中心的缓存
     // Registry Collection Map<RegistryAddress, Registry>
     protected static final Map<String, Registry> REGISTRIES = new HashMap<>();
 

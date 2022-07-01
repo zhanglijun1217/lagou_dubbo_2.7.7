@@ -58,11 +58,12 @@ public abstract class Proxy {
 
     /**
      * Get proxy.
-     *
+     * 生成代理
      * @param ics interface class array.
      * @return Proxy instance.
      */
     public static Proxy getProxy(Class<?>... ics) {
+
         return getProxy(ClassUtils.getClassLoader(Proxy.class), ics);
     }
 

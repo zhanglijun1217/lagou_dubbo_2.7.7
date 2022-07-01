@@ -111,10 +111,13 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
      *
      * @param config
      * @return
+     *
+     * 利用LinkedLists去构造优先级的配置
      */
     public synchronized CompositeConfiguration getPrefixedConfiguration(AbstractConfig config) {
         CompositeConfiguration prefixedConfiguration = new CompositeConfiguration(config.getPrefix(), config.getId());
         Configuration configuration = new ConfigConfigurationAdapter(config);
+        // 配置：是否配置中心优先级高 会根据这个配置值来决定ServiceConfig存放在LinkedList的那个位置上
         if (this.isConfigCenterFirst()) {
             // The sequence would be: SystemConfiguration -> AppExternalConfiguration -> ExternalConfiguration -> AbstractConfig -> PropertiesConfiguration
             // Config center has the highest priority

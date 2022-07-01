@@ -29,7 +29,9 @@ import java.util.function.Function;
 /**
  * {@link AsyncRpcResult} is introduced in 3.0.0 to replace RpcResult, and RpcResult is replaced with {@link AppResponse}:
  * <ul>
+ *     // AsyncRpcResult是真正返回给上层调用链的对象
  *     <li>AsyncRpcResult is the object that is actually passed in the call chain</li>
+ *     // AppResponse 只是简单承载dubbo服务返回的业务对象
  *     <li>AppResponse only simply represents the business result</li>
  * </ul>
  *
@@ -49,10 +51,13 @@ public class AppResponse implements Result {
 
     private static final long serialVersionUID = -6925924956850004727L;
 
+    // dubbo返回的业务对象
     private Object result;
 
+    // 服务端的异常信息
     private Throwable exception;
 
+    // 服务端返回的附带信息
     private Map<String, Object> attachments = new HashMap<>();
 
     public AppResponse() {
@@ -66,14 +71,19 @@ public class AppResponse implements Result {
         this.exception = exception;
     }
 
+    // 客户端引用dubbo服务生成的代理对象的代理逻辑中会调用
+    // 主要作用是在客户端抛出服务端返回的异常
+    // 处理异常 @See 服务端的异常过滤器 ExceptionFilter 特殊逻辑是会把服务端的自定义异常（没在接口同一jar包内）封装为RuntimeException
     @Override
     public Object recreate() throws Throwable {
         if (exception != null) {
+            // 异常不为空
             // fix issue#619
             try {
                 // get Throwable class
                 Class clazz = exception.getClass();
                 while (!clazz.getName().equals(Throwable.class.getName())) {
+                    // 找到根异常
                     clazz = clazz.getSuperclass();
                 }
                 // get stackTrace value
@@ -86,6 +96,7 @@ public class AppResponse implements Result {
             } catch (Exception e) {
                 // ignore
             }
+            // 在客户端抛出对应的异常
             throw exception;
         }
         return result;

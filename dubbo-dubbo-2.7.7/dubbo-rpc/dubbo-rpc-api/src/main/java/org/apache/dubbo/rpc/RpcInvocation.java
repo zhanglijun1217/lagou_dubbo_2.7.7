@@ -43,6 +43,27 @@ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
 
 /**
  * RPC Invocation.
+ * targetServiceUniqueName（String类型）：要调用的唯一服务名称，其实就是 ServiceKey，即 interface/group:version 三部分构成的字符串。
+ *
+ * methodName（String类型）：调用的目标方法名称。
+ *
+ * serviceName（String类型）：调用的目标服务名称，示例中就是org.apache.dubbo.demo.DemoService。
+ *
+ * parameterTypes（Class<?>[]类型）：记录了目标方法的全部参数类型。
+ *
+ * parameterTypesDesc（String类型）：参数列表签名。
+ *
+ * arguments（Object[]类型）：具体参数值。
+ *
+ * attachments（Map<String, Object>类型）：此次调用的附加信息，可以被序列化到请求中。
+ *
+ * attributes（Map<Object, Object>类型）：此次调用的属性信息，这些信息不能被发送出去。
+ *
+ * invoker（Invoker<?>类型）：此次调用关联的 Invoker 对象。
+ *
+ * returnType（Class<?>类型）：返回值的类型。
+ *
+ * invokeMode（InvokeMode类型）：此次调用的模式，分为 SYNC、ASYNC 和 FUTURE 三类
  *
  * @serial Don't change the class name and properties.
  */
@@ -50,6 +71,7 @@ public class RpcInvocation implements Invocation, Serializable {
 
     private static final long serialVersionUID = -4355285085441097045L;
 
+    // serviceKey
     private String targetServiceUniqueName;
 
     private String methodName;
@@ -63,14 +85,17 @@ public class RpcInvocation implements Invocation, Serializable {
 
     /**
      * Passed to the remote server during RPC call
+     * 传递给调用者的kv参数
      */
     private Map<String, Object> attachments;
 
     /**
      * Only used on the caller side, will not appear on the wire.
+     * 仅用在调用方的参数
      */
     private Map<Object, Object> attributes = new HashMap<Object, Object>();
 
+    // 此次调用关联的invoker对象
     private transient Invoker<?> invoker;
 
     private transient Class<?> returnType;

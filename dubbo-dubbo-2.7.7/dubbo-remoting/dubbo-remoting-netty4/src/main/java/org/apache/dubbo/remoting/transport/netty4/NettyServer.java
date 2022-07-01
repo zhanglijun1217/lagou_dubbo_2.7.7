@@ -74,23 +74,29 @@ public class NettyServer extends AbstractServer implements RemotingServer {
     public NettyServer(URL url, ChannelHandler handler) throws RemotingException {
         // you can customize name and type of client thread pool by THREAD_NAME_KEY and THREADPOOL_KEY in CommonConstants.
         // the handler will be wrapped: MultiMessageHandler->HeartbeatHandler->handler
+        // 创建一个NettyServer
+        //      1.url参数设置服务端线程名称
+        //      2.handler再包装ChannelHandlers.wrap
         super(ExecutorUtil.setThreadName(url, SERVER_THREAD_POOL_NAME), ChannelHandlers.wrap(handler, url));
     }
 
     /**
      * Init and start netty server
-     *
+     * 初始化和启动NettyServer
      * @throws Throwable
      */
     @Override
     protected void doOpen() throws Throwable {
         bootstrap = new ServerBootstrap();
 
+        // netty的bossGroup ?
         bossGroup = NettyEventLoopFactory.eventLoopGroup(1, "NettyServerBoss");
+        // netty的workerGroup 处理IO事件 线程数iothreads变量可配  默认核数+1
         workerGroup = NettyEventLoopFactory.eventLoopGroup(
                 getUrl().getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS),
                 "NettyServerWorker");
 
+        // 创建一个NettyServerHandler 包装传入的handler
         final NettyServerHandler nettyServerHandler = new NettyServerHandler(getUrl(), this);
         channels = nettyServerHandler.getChannels();
 
@@ -104,12 +110,14 @@ public class NettyServer extends AbstractServer implements RemotingServer {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         // FIXME: should we use getTimeout()?
                         int idleTimeout = UrlUtils.getIdleTimeout(getUrl());
+                        // 构建一个NettyCodecAdapter
                         NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyServer.this);
                         if (getUrl().getParameter(SSL_ENABLED_KEY, false)) {
                             ch.pipeline().addLast("negotiation",
                                     SslHandlerInitializer.sslServerHandler(getUrl(), nettyServerHandler));
                         }
                         ch.pipeline()
+                                // 真正去解析Dubbo协议的二进制流 （反序列化）的Decoder
                                 .addLast("decoder", adapter.getDecoder())
                                 .addLast("encoder", adapter.getEncoder())
                                 .addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS))

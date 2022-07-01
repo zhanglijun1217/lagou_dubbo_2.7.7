@@ -37,6 +37,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.TIME_COUNTDOWN_K
  * ConsumerContextFilter set current RpcContext with invoker,invocation, local host, remote host and port
  * for consumer invoker.It does it to make the requires info available to execution thread's RpcContext.
  *
+ * 消费端上下文过滤器
  * @see org.apache.dubbo.rpc.Filter
  * @see RpcContext
  */
@@ -45,6 +46,7 @@ public class ConsumerContextFilter implements Filter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 在调用之前 写入RpcContext信息
         RpcContext context = RpcContext.getContext();
         context.setInvoker(invoker)
                 .setInvocation(invocation)
@@ -53,6 +55,7 @@ public class ConsumerContextFilter implements Filter {
                 .setRemoteApplicationName(invoker.getUrl().getParameter(REMOTE_APPLICATION_KEY))
                 .setAttachment(REMOTE_APPLICATION_KEY, invoker.getUrl().getParameter(APPLICATION_KEY));
         if (invocation instanceof RpcInvocation) {
+            // invocation中添加当前的Invoker
             ((RpcInvocation) invocation).setInvoker(invoker);
         }
 
@@ -61,6 +64,7 @@ public class ConsumerContextFilter implements Filter {
         if (countDown != null) {
             TimeoutCountDown timeoutCountDown = (TimeoutCountDown) countDown;
             if (timeoutCountDown.isExpired()) {
+                // 此时客户端调用时已经超时 则构造一个超时的异常结果AsyncRpcResult来返回
                 return AsyncRpcResult.newDefaultAsyncResult(new RpcException(RpcException.TIMEOUT_TERMINATE,
                         "No time left for making the following call: " + invocation.getServiceName() + "."
                                 + invocation.getMethodName() + ", terminate directly."), invocation);

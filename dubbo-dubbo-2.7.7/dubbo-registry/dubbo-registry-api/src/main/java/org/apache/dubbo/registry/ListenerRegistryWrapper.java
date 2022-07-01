@@ -24,11 +24,11 @@ import org.apache.dubbo.common.utils.CollectionUtils;
 
 import java.util.List;
 
-public class ListenerRegistryWrapper implements Registry {
+public class ListenerRegistryWrapper implements Registry { // Registry的一个wrapper实现 作用是在和注册中心交互成功之后 广播给对应的listener监听者
     private static final Logger logger = LoggerFactory.getLogger(ListenerRegistryWrapper.class);
 
-    private final Registry registry;
-    private final List<RegistryServiceListener> listeners;
+    private final Registry registry;// 持有的真正的注册中心
+    private final List<RegistryServiceListener> listeners;// 注册中心服务的监听者
 
 
     public ListenerRegistryWrapper(Registry registry, List<RegistryServiceListener> listeners) {
@@ -61,6 +61,7 @@ public class ListenerRegistryWrapper implements Registry {
                 for (RegistryServiceListener listener : listeners) {
                     if (listener != null) {
                         try {
+                            //注册完成之后 触发每个listener
                             listener.onRegister(url);
                         } catch (RuntimeException t) {
                             logger.error(t.getMessage(), t);

@@ -67,6 +67,7 @@ import java.lang.annotation.Target;
 @Inherited
 @Documented
 @Import(DubboConfigConfigurationRegistrar.class)
+// 解析Dubbo 配置 （properties文件）的支持 导入了DubboConfigConfigurationRegistrar
 public @interface EnableDubboConfig {
 
     /**

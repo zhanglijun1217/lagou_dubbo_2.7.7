@@ -41,6 +41,8 @@ import static org.springframework.beans.factory.BeanFactoryUtils.beansOfTypeIncl
 
 /**
  * ReferenceFactoryBean
+ * @Reference注解会最终生成一个 ReferenceBean
+ * 继承了SpringFactoryBean 目的是对引用的bean 生成对应的代理逻辑。
  */
 public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
         ApplicationContextAware, InitializingBean, DisposableBean {
@@ -101,6 +103,7 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
     public void afterPropertiesSet() throws Exception {
 
         // Initializes Dubbo's Config Beans before @Reference bean autowiring
+        // 准备dubbo配置
         prepareDubboConfigBeans();
 
         // lazy init by default.
@@ -110,6 +113,7 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
 
         // eager init if necessary.
         if (shouldInit()) {
+            // 调用FactoryBean的getObject方法进行服务的引用
             getObject();
         }
     }

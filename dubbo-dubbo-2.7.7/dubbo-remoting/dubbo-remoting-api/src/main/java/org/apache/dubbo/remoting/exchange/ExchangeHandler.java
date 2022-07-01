@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * ExchangeHandler. (API, Prototype, ThreadSafe)
+ * 回应请求 replay 实现举例：比如DubboProtocol的requestHandler 处理调用请求
  */
 public interface ExchangeHandler extends ChannelHandler, TelnetHandler {
 

@@ -35,6 +35,7 @@ import static org.apache.dubbo.rpc.Constants.INTERFACES;
 
 /**
  * AbstractProxyFactory
+ * 代理工厂抽象实现
  */
 public abstract class AbstractProxyFactory implements ProxyFactory {
     private static final Class<?>[] INTERNAL_INTERFACES = new Class<?>[]{
@@ -48,6 +49,7 @@ public abstract class AbstractProxyFactory implements ProxyFactory {
 
     @Override
     public <T> T getProxy(Invoker<T> invoker, boolean generic) throws RpcException {
+        // 接口
         Set<Class<?>> interfaces = new HashSet<>();
 
         String config = invoker.getUrl().getParameter(INTERFACES);
@@ -60,6 +62,7 @@ public abstract class AbstractProxyFactory implements ProxyFactory {
         }
 
         if (generic) {
+            // 泛化调用
             if (!GenericService.class.isAssignableFrom(invoker.getInterface())) {
                 interfaces.add(com.alibaba.dubbo.rpc.service.GenericService.class);
             }
@@ -76,6 +79,7 @@ public abstract class AbstractProxyFactory implements ProxyFactory {
         interfaces.add(invoker.getInterface());
         interfaces.addAll(Arrays.asList(INTERNAL_INTERFACES));
 
+        // 为引用dubbo服务的Invoker去生成代理 委托子类实现
         return getProxy(invoker, interfaces.toArray(new Class<?>[0]));
     }
 

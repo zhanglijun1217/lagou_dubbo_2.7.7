@@ -41,19 +41,24 @@ import static org.apache.dubbo.common.constants.CommonConstants.VERSION_KEY;
 
 /**
  * abstract ProtocolSupport.
+ * 提供公共能力和公用字段
  */
 public abstract class AbstractProtocol implements Protocol {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    // 存放exporter的map 即导出服务的集合
+    // key:group + serviceName + version + 暴露的port
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();
 
     /**
      * <host:port, ProtocolServer>
+     *     服务的集合 比如NettyServer
      */
     protected final Map<String, ProtocolServer> serverMap = new ConcurrentHashMap<>();
 
     //TODO SoftReference
+    // 服务引用的集合
     protected final Set<Invoker<?>> invokers = new ConcurrentHashSet<Invoker<?>>();
 
     protected static String serviceKey(URL url) {
@@ -69,6 +74,9 @@ public abstract class AbstractProtocol implements Protocol {
         return Collections.unmodifiableList(new ArrayList<>(serverMap.values()));
     }
 
+    // 生命周期的销毁
+    // 1. Invokers 服务引用集合的销毁
+    // 2. exporterMap 导出服务进行unExport
     @Override
     public void destroy() {
         for (Invoker<?> invoker : invokers) {
@@ -101,6 +109,8 @@ public abstract class AbstractProtocol implements Protocol {
 
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        // 包装了一层异步转同步的Invoker
+        // 委托给protocolBindingRefer方法子类实现
         return new AsyncToSyncInvoker<>(protocolBindingRefer(type, url));
     }
 

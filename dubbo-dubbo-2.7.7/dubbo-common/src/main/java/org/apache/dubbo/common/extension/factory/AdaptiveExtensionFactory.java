@@ -26,9 +26,9 @@ import java.util.List;
 
 /**
  * AdaptiveExtensionFactory
- * ExtensionFactory SPI接口的扩展点实现类 会作为自适应扩展点直接返回
+ * ExtensionFactory SPI接口的扩展点实现类 会作为自适应扩展点在ExtensionLoader实例调用getAdaptiveExtension方法时直接返回
  */
-@Adaptive
+@Adaptive // 对外自适应性实现直接返回 因为@Adaptive注解标注在了类上
 public class AdaptiveExtensionFactory implements ExtensionFactory {
 
     private final List<ExtensionFactory> factories;

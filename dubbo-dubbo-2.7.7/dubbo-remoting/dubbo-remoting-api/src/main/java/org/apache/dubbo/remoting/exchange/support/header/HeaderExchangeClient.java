@@ -42,6 +42,8 @@ import static org.apache.dubbo.remoting.utils.UrlUtils.getIdleTimeout;
 
 /**
  * DefaultMessageClient
+ * HeaderExchangeClient 封装具体的client（一般是NettyClient） 和ExchangeChannel
+ * 初始化时去建立了抽象层的重连和心跳
  */
 public class HeaderExchangeClient implements ExchangeClient {
 
@@ -60,6 +62,8 @@ public class HeaderExchangeClient implements ExchangeClient {
 
         if (startTimer) {
             URL url = client.getUrl();
+            // Exchange交换层的重连和心跳
+            //          注意：内部有判断 如果持有的具体的Client（比如NettyClient）有自己的心跳机制 不会去创建心跳任务
             startReconnectTask(url);
             startHeartBeatTask(url);
         }
@@ -187,6 +191,7 @@ public class HeaderExchangeClient implements ExchangeClient {
     }
 
     private void startHeartBeatTask(URL url) {
+        //判断下具体的client是否能自己去心跳检测
         if (!client.canHandleIdle()) {
             AbstractTimerTask.ChannelProvider cp = () -> Collections.singletonList(HeaderExchangeClient.this);
             int heartbeat = getHeartbeat(url);
