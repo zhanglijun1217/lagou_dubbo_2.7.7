@@ -29,20 +29,36 @@ import java.util.concurrent.atomic.AtomicLong;
  * @see org.apache.dubbo.rpc.filter.ActiveLimitFilter
  * @see org.apache.dubbo.rpc.filter.ExecuteLimitFilter
  * @see org.apache.dubbo.rpc.cluster.loadbalance.LeastActiveLoadBalance
+ *
+ * SERVICE_STATISTICS 集合（ConcurrentMap<String, RpcStatus> 类型），这个集合记录了当前 Consumer 调用每个服务的状态信息，其中 Key 是 URL，Value 是对应的 RpcStatus 对象；
+ *
+ * METHOD_STATISTICS 集合（ConcurrentMap<String, ConcurrentMap<String, RpcStatus>> 类型），这个集合记录了当前 Consumer 调用每个服务方法的状态信息，其中第一层 Key 是 URL ，第二层 Key 是方法名称，第三层是对应的 RpcStatus 对象。
  */
 public class RpcStatus {
 
+    // 当前Consumer调用的每个服务的状态信息
     private static final ConcurrentMap<String, RpcStatus> SERVICE_STATISTICS = new ConcurrentHashMap<String, RpcStatus>();
 
+    // 当前Consumer调用的每个服务方法的状态信息 url -> methodName -> RpcStatus
     private static final ConcurrentMap<String, ConcurrentMap<String, RpcStatus>> METHOD_STATISTICS = new ConcurrentHashMap<String, ConcurrentMap<String, RpcStatus>>();
+
     private final ConcurrentMap<String, Object> values = new ConcurrentHashMap<String, Object>();
+
+    // 当前并发度
     private final AtomicInteger active = new AtomicInteger();
+    // 调用总数
     private final AtomicLong total = new AtomicLong();
+    // 失败调用数
     private final AtomicInteger failed = new AtomicInteger();
+    // 所有调用的总耗时
     private final AtomicLong totalElapsed = new AtomicLong();
+    // 失败调用总耗时
     private final AtomicLong failedElapsed = new AtomicLong();
+    // 调用中最长的耗时
     private final AtomicLong maxElapsed = new AtomicLong();
+    // 失败调用中最长的耗时
     private final AtomicLong failedMaxElapsed = new AtomicLong();
+    // 成功中调用最长耗时
     private final AtomicLong succeededMaxElapsed = new AtomicLong();
 
     private RpcStatus() {
@@ -93,6 +109,7 @@ public class RpcStatus {
 
     /**
      * @param url
+     * 发起调用前从缓存中找到对应的服务状态和方法状态两个RpcStatus信息 维护其active数量
      */
     public static boolean beginCount(URL url, String methodName, int max) {
         max = (max <= 0) ? Integer.MAX_VALUE : max;
@@ -107,6 +124,7 @@ public class RpcStatus {
                 return false;
             }
             if (methodStatus.active.compareAndSet(i, i + 1)) {
+                // cas更新
                 break;
             }
         }

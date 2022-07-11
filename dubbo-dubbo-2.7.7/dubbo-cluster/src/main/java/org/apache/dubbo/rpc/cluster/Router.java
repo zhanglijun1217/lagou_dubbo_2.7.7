@@ -27,7 +27,7 @@ import java.util.List;
  * Router. (SPI, Prototype, ThreadSafe)
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Routing">Routing</a>
- *
+ * 象的是路由器，请求经过 Router 的时候，会按照用户指定的规则匹配出符合条件的 Provider。
  * @see org.apache.dubbo.rpc.cluster.Cluster#join(Directory)
  * @see org.apache.dubbo.rpc.cluster.Directory#list(Invocation)
  */

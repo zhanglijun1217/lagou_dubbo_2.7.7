@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 /**
  * Endpoint. (API/SPI, Prototype, ThreadSafe)
  *
+ * 端点接口 可以用一个ip+端口确认一个端点 两个端点之间可以使用TCP连接 Dubbo抽象两个端点间的连接为channel
  *
  * @see org.apache.dubbo.remoting.Channel
  * @see org.apache.dubbo.remoting.Client
@@ -32,13 +33,14 @@ public interface Endpoint {
 
     /**
      * get url.
-     *
+     * 获取端点关联的url
      * @return url
      */
     URL getUrl();
 
     /**
      * get channel handler.
+     * 获取底层绑定的ChannelHandler
      *
      * @return channel handler
      */
@@ -53,6 +55,7 @@ public interface Endpoint {
 
     /**
      * send message.
+     * 发送数据
      *
      * @param message
      * @throws RemotingException
@@ -61,6 +64,7 @@ public interface Endpoint {
 
     /**
      * send message.
+     * 发送数据 （重载）
      *
      * @param message
      * @param sent    already sent to socket?

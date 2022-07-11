@@ -46,6 +46,7 @@ public abstract class AbstractLoadBalance implements LoadBalance {
      * @return weight which takes warmup into account
      */
     static int calculateWarmupWeight(int uptime, int warmup, int weight) {
+        // 计算权重，随着服务运行时间uptime增大，权重ww的值会慢慢接近配置值weight
         int ww = (int) ( uptime / ((float) warmup / weight));
         return ww < 1 ? 1 : (Math.min(ww, weight));
     }
@@ -58,6 +59,7 @@ public abstract class AbstractLoadBalance implements LoadBalance {
         if (invokers.size() == 1) {
             return invokers.get(0);
         }
+        // 委托给子类实现
         return doSelect(invokers, url, invocation);
     }
 
@@ -67,18 +69,21 @@ public abstract class AbstractLoadBalance implements LoadBalance {
     /**
      * Get the weight of the invoker's invocation which takes warmup time into account
      * if the uptime is within the warmup time, the weight will be reduce proportionally
-     *
+     * AbstractLoadBalance提供的getWeight方法 用于计算Provider节点权重
      * @param invoker    the invoker
      * @param invocation the invocation of this invoker
      * @return weight
      */
     int getWeight(Invoker<?> invoker, Invocation invocation) {
         int weight;
+        // provider节点的url
         URL url = invoker.getUrl();
         // Multiple registry scenario, load balance among multiple registries.
         if (REGISTRY_SERVICE_REFERENCE_PATH.equals(url.getServiceInterface())) {
+            // 如果是RegistryService接口的话 直接获取参数上的权重
             weight = url.getParameter(REGISTRY_KEY + "." + WEIGHT_KEY, DEFAULT_WEIGHT);
         } else {
+            // 从url中获取 权重
             weight = url.getMethodParameter(invocation.getMethodName(), WEIGHT_KEY, DEFAULT_WEIGHT);
             if (weight > 0) {
                 long timestamp = invoker.getUrl().getParameter(TIMESTAMP_KEY, 0L);
@@ -89,6 +94,7 @@ public abstract class AbstractLoadBalance implements LoadBalance {
                     }
                     int warmup = invoker.getUrl().getParameter(WARMUP_KEY, DEFAULT_WARMUP);
                     if (uptime > 0 && uptime < warmup) {
+                        // 对刚启动的provider节点 进行降权
                         weight = calculateWarmupWeight((int)uptime, warmup, weight);
                     }
                 }

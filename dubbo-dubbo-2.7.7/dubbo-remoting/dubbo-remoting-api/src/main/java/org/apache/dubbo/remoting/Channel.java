@@ -20,7 +20,9 @@ import java.net.InetSocketAddress;
 
 /**
  * Channel. (API/SPI, Prototype, ThreadSafe)
- *
+ * 代表两个端点间的连接
+ * 本身也是继承了Endpoint 有了发送数据的能力
+ *      自身加入了附属的kv属性 {@see setAttribute method}
  * @see org.apache.dubbo.remoting.Client
  * @see RemotingServer#getChannels()
  * @see RemotingServer#getChannel(InetSocketAddress)

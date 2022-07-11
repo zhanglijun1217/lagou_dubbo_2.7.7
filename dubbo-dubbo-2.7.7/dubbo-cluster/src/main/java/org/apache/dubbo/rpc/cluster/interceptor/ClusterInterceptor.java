@@ -29,11 +29,14 @@ import org.apache.dubbo.rpc.cluster.support.AbstractClusterInvoker;
 @SPI
 public interface ClusterInterceptor {
 
+    // 前置拦截
     void before(AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);
 
+    // 后置拦截
     void after(AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);
 
     /**
+     * 调用ClusterInvoker的invoke()方法完成请求
      * Does not need to override this method, override {@link #before(AbstractClusterInvoker, Invocation)}
      * and {@link #after(AbstractClusterInvoker, Invocation)}, methods to add your own logic expected to be
      * executed before and after invoke.
@@ -47,6 +50,7 @@ public interface ClusterInterceptor {
         return clusterInvoker.invoke(invocation);
     }
 
+    // 处理监听请求的正常结果或者异常
     interface Listener {
 
         void onMessage(Result appResponse, AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);

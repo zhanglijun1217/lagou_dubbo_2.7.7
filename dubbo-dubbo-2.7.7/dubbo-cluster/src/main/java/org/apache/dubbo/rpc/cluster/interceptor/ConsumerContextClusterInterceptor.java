@@ -30,20 +30,25 @@ public class ConsumerContextClusterInterceptor implements ClusterInterceptor, Cl
     @Override
     public void before(AbstractClusterInvoker<?> invoker, Invocation invocation) {
         RpcContext context = RpcContext.getContext();
+        // 设置consumer地址
         context.setInvocation(invocation).setLocalAddress(NetUtils.getLocalHost(), 0);
         if (invocation instanceof RpcInvocation) {
+            // 设置此次调用的invoke信息
             ((RpcInvocation) invocation).setInvoker(invoker);
         }
+        // 删除之前与当前线程绑定的Server Context
         RpcContext.removeServerContext();
     }
 
     @Override
     public void after(AbstractClusterInvoker<?> clusterInvoker, Invocation invocation) {
+        // 删除本地的RpcContext信息
         RpcContext.removeContext(true);
     }
 
     @Override
     public void onMessage(Result appResponse, AbstractClusterInvoker<?> invoker, Invocation invocation) {
+        // 设置响应的attachments 设置到RpcContext中的SERVER_LOCAL之中
         RpcContext.getServerContext().setObjectAttachments(appResponse.getObjectAttachments());
     }
 

@@ -48,6 +48,10 @@ import static org.apache.dubbo.rpc.cluster.Constants.DEFAULT_CLUSTER_STICKY;
 
 /**
  * AbstractClusterInvoker
+ * 配合Cluster接口实现集群容错的逻辑 在每个Cluster接口的实现中，都会创建对应的Invoker对象 这些Invoker对象都会继承AbstractClusterInvoker
+ *
+ * 实现了Invoker接口，对Invoker.invoke抽象实现 主要是加入了集群下的一些功能
+ * 实现了通用的负载均衡算法。
  */
 public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 
@@ -122,10 +126,12 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
      * the selected invoker has the minimum chance to be one in the previously selected list, and also
      * guarantees this invoker is available.
      *
-     * @param loadbalance load balance policy
-     * @param invocation  invocation
-     * @param invokers    invoker candidates
-     * @param selected    exclude selected invokers or not
+     * 子类实现集群容错的时候（doInvoke调用方法）会调用抽象类这里的select方法完成负载均衡 相当于一个抽象的公用能力
+     *
+     * @param loadbalance load balance policy 负载均衡实现
+     * @param invocation  invocation 这次调用传递的上下文信息
+     * @param invokers    invoker candidates 待选择的Invokers集合
+     * @param selected    exclude selected invokers or not 已经选择出来尝试过的Invoker集合
      * @return the invoker which will final to do invoke.
      * @throws RpcException exception
      */
@@ -135,8 +141,10 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         if (CollectionUtils.isEmpty(invokers)) {
             return null;
         }
+        // 方法名称
         String methodName = invocation == null ? StringUtils.EMPTY_STRING : invocation.getMethodName();
 
+        // 获取sticky配置，sticky表示粘滞连接，所谓粘滞连接是指Consumer会尽可能地调用同一个Provider节点，除非这个Provider无法提供服务
         boolean sticky = invokers.get(0).getUrl()
                 .getMethodParameter(methodName, CLUSTER_STICKY_KEY, DEFAULT_CLUSTER_STICKY);
 
@@ -151,6 +159,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
             }
         }
 
+        // doSelect选择新的Invoker
         Invoker<T> invoker = doSelect(loadbalance, invocation, invokers, selected);
 
         if (sticky) {
@@ -175,6 +184,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         if ((selected != null && selected.contains(invoker))
                 || (!invoker.isAvailable() && getUrl() != null && availablecheck)) {
             try {
+                // 如果选出不可用 则需要再次进行select
                 Invoker<T> rInvoker = reselect(loadbalance, invocation, invokers, selected, availablecheck);
                 if (rInvoker != null) {
                     invoker = rInvoker;
@@ -183,6 +193,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
                     int index = invokers.indexOf(invoker);
                     try {
                         //Avoid collision
+                        // 重选出的Invoker为空 则选择下一个
                         invoker = invokers.get((index + 1) % invokers.size());
                     } catch (Exception e) {
                         logger.warn(e.getMessage() + " may because invokers list dynamic change, ignore.", e);
@@ -247,17 +258,23 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 
     @Override
     public Result invoke(final Invocation invocation) throws RpcException {
+        // 检查当前Invoker是否已销毁
         checkWhetherDestroyed();
 
         // binding attachments into invocation.
+        // 将RpcContext中的attachment添加到Invocation中
         Map<String, Object> contextAttachments = RpcContext.getContext().getObjectAttachments();
         if (contextAttachments != null && contextAttachments.size() != 0) {
             ((RpcInvocation) invocation).addObjectAttachments(contextAttachments);
         }
 
+        // 通过Directory获取Invoker对象列表 RegistryDirectory内部会调用Router完成服务路由的功能
         List<Invoker<T>> invokers = list(invocation); // 先去服务目录选择
+        // 再通过SPI加载对应的负载均衡实现
         LoadBalance loadbalance = initLoadBalance(invokers, invocation);// 再负载均衡
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
+
+        // 委托给具体的集群容错子类 实现调用
         return doInvoke(invocation, invokers, loadbalance);
     }
 

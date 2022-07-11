@@ -22,6 +22,7 @@ import org.apache.dubbo.common.extension.SPI;
 
 /**
  * Transporter. (SPI, Singleton, ThreadSafe)
+ *  底层进行网络传输的抽象 负责创建Client和RemotingServer ，同时将多个ChannelHandler绑定到Channel来处理传输的数据
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Transport_Layer">Transport Layer</a>
  * <a href="http://en.wikipedia.org/wiki/Client%E2%80%93server_model">Client/Server</a>
@@ -33,6 +34,7 @@ public interface Transporter {
 
     /**
      * Bind a server.
+     * 绑定一个Server 在export服务导出过程会调用
      *
      * @param url     server url
      * @param handler
@@ -45,6 +47,7 @@ public interface Transporter {
 
     /**
      * Connect to a server.
+     * 连接一个server 返回网络传输中的Client
      *
      * @param url     server url
      * @param handler

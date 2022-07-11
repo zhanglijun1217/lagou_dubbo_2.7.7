@@ -30,7 +30,7 @@ import java.util.List;
  * LoadBalance. (SPI, Singleton, ThreadSafe)
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Load_balancing_(computing)">Load-Balancing</a>
- *
+ *是负载均衡接口，Consumer 会按照指定的负载均衡策略，从 Provider 集合中选出一个最合适的 Provider 节点来处理请求。
  * @see org.apache.dubbo.rpc.cluster.Cluster#join(Directory)
  */
 @SPI(RandomLoadBalance.NAME)
@@ -38,7 +38,7 @@ public interface LoadBalance {
 
     /**
      * select one invoker in list.
-     *
+     * 根据传入的 URL 和 Invocation，以及自身的负载均衡算法，从 Invoker 集合中选择一个 Invoker 返回
      * @param invokers   invokers.
      * @param url        refer url
      * @param invocation invocation.

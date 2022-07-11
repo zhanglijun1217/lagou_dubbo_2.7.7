@@ -61,15 +61,19 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
     public FailbackClusterInvoker(Directory<T> directory) {
         super(directory);
 
+        // 配置的重试次数
         int retriesConfig = getUrl().getParameter(RETRIES_KEY, DEFAULT_FAILBACK_TIMES);
         if (retriesConfig <= 0) {
             retriesConfig = DEFAULT_FAILBACK_TIMES;
         }
+        // 配置的failback重试任务数
         int failbackTasksConfig = getUrl().getParameter(FAIL_BACK_TASKS_KEY, DEFAULT_FAILBACK_TASKS);
         if (failbackTasksConfig <= 0) {
             failbackTasksConfig = DEFAULT_FAILBACK_TASKS;
         }
+        // 重试次数
         retries = retriesConfig;
+        // 配置重试任务的数量
         failbackTasks = failbackTasksConfig;
     }
 
@@ -77,6 +81,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
         if (failTimer == null) {
             synchronized (this) {
                 if (failTimer == null) {
+                    // 初始化重试任务的时间轮
                     failTimer = new HashedWheelTimer(
                             new NamedThreadFactory("failback-cluster-timer", true),
                             1,
@@ -84,6 +89,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 }
             }
         }
+        // 创建一个重试的定时任务 每隔5s执行一次
         RetryTimerTask retryTimerTask = new RetryTimerTask(loadbalance, invocation, invokers, lastInvoker, retries, RETRY_FAILED_PERIOD);
         try {
             failTimer.newTimeout(retryTimerTask, RETRY_FAILED_PERIOD, TimeUnit.SECONDS);
@@ -102,6 +108,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
         } catch (Throwable e) {
             logger.error("Failback to invoke method " + invocation.getMethodName() + ", wait for retry in background. Ignored exception: "
                     + e.getMessage() + ", ", e);
+            // 失败之后 根据failback的容错语义 会添加一个定时任务进行重试
             addFailed(loadbalance, invocation, invokers, invoker);
             return AsyncRpcResult.newDefaultAsyncResult(null, null, invocation); // ignore
         }
@@ -139,14 +146,19 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
         @Override
         public void run(Timeout timeout) {
             try {
+                // 负载均衡选出进行重试的Invoker
                 Invoker<T> retryInvoker = select(loadbalance, invocation, invokers, Collections.singletonList(lastInvoker));
+                // 更新lastInvoker引用
                 lastInvoker = retryInvoker;
+                // 进行调用
                 retryInvoker.invoke(invocation);
             } catch (Throwable e) {
                 logger.error("Failed retry to invoke method " + invocation.getMethodName() + ", waiting again.", e);
                 if ((++retryTimes) >= retries) {
+                    // 达到重试次数的上线 打一个error日志
                     logger.error("Failed retry times exceed threshold (" + retries + "), We have to abandon, invocation->" + invocation);
                 } else {
+                    // 未达到上限 则重新添加定时任务 等待重试
                     rePut(timeout);
                 }
             }

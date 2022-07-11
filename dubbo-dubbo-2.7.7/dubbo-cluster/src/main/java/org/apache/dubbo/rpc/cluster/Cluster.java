@@ -27,7 +27,7 @@ import org.apache.dubbo.rpc.cluster.support.FailoverCluster;
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Computer_cluster">Cluster</a>
  * <a href="http://en.wikipedia.org/wiki/Fault-tolerant_system">Fault-Tolerant</a>
- *
+ * 集群容错的接口 某些Provider节点发生故障的时候，让Consumer的调用请求能够真正发送到正常的Provider节点，保证系统可用性的一个手段。
  */
 @SPI(FailoverCluster.NAME)
 public interface Cluster {

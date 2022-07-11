@@ -28,6 +28,7 @@ import java.io.OutputStream;
  * Serialization strategy interface that specifies a serializer. (SPI, Singleton, ThreadSafe)
  *
  * The default extension is hessian2 and the default serialization implementation of the dubbo protocol.
+ * 序列化扩展接口
  * <pre>
  *     e.g. &lt;dubbo:protocol serialization="xxx" /&gt;
  * </pre>
@@ -39,21 +40,21 @@ public interface Serialization {
      * Get content type unique id, recommended that custom implementations use values different with
      * any value of {@link Constants} and don't greater than ExchangeCodec.SERIALIZATION_MASK (31) 
      * because dubbo protocol use 5 bits to record serialization ID in header.
-     *
+     * 序列化的类型id
      * @return content type id
      */
     byte getContentTypeId();
 
     /**
      * Get content type
-     *
+     * 每种序列化算法都有对应的contentType
      * @return content type
      */
     String getContentType();
 
     /**
      * Get a serialization implementation instance
-     *
+     * java对象转化为二进制流 写出 （序列化）
      * @param url URL address for the remote service
      * @param output the underlying output stream
      * @return serializer
@@ -64,7 +65,7 @@ public interface Serialization {
 
     /**
      * Get a deserialization implementation instance
-     *
+     * 二进制流转化为java对象 读入（反序列化）
      * @param url URL address for the remote service
      * @param input the underlying input stream
      * @return deserializer

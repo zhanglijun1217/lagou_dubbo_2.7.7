@@ -26,6 +26,7 @@ import java.util.Collection;
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Client%E2%80%93server_model">Client/Server</a>
  *
+ *  dubbo remoting模块抽象出的server端 可以处理多个client发起的channel连接（关联多个channel） {@see getChannels方法}
  * @see org.apache.dubbo.remoting.Transporter#bind(org.apache.dubbo.common.URL, ChannelHandler)
  */
 public interface RemotingServer extends Endpoint, Resetable, IdleSensible {

@@ -30,6 +30,7 @@ import java.util.List;
 
 /**
  * StaticDirectory
+ * 静态目录 不会跟随注册中服务提供者地址变化而变化
  */
 public class StaticDirectory<T> extends AbstractDirectory<T> {
     private static final Logger logger = LoggerFactory.getLogger(StaticDirectory.class);
@@ -92,6 +93,7 @@ public class StaticDirectory<T> extends AbstractDirectory<T> {
     }
 
     public void buildRouterChain() {
+        // 构建内置Router集合
         RouterChain<T> routerChain = RouterChain.buildChain(getUrl());
         routerChain.setInvokers(invokers);
         this.setRouterChain(routerChain);
@@ -102,6 +104,7 @@ public class StaticDirectory<T> extends AbstractDirectory<T> {
         List<Invoker<T>> finalInvokers = invokers;
         if (routerChain != null) {
             try {
+                // 按照route路由规则选择出符合条件的子集
                 finalInvokers = routerChain.route(getConsumerUrl(), invocation);
             } catch (Throwable t) {
                 logger.error("Failed to execute router: " + getUrl() + ", cause: " + t.getMessage(), t);

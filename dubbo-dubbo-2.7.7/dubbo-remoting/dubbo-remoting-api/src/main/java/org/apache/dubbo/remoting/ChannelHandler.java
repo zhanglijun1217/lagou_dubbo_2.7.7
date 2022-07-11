@@ -21,6 +21,15 @@ import org.apache.dubbo.common.extension.SPI;
 
 /**
  * ChannelHandler. (API, Prototype, ThreadSafe)
+ * 注册在Channel上的ChannelHandler 消息处理器
+ *  1. 处理channel上的连接、断开事件
+ *  2. 处理读到的数据（received)
+ *  3. 处理发送出去的数据（sent）
+ *  4. 处理捕获的异常 （caught）
+ *
+ * 方法名称都是过去式 代表发送数据、接收数据、异常发生都是过去式 属于发生后操作
+ *
+ * 无论是Client还是RemotingServer端，都会绑定多个ChannelHandler来处理数据
  *
  * @see org.apache.dubbo.remoting.Transporter#bind(org.apache.dubbo.common.URL, ChannelHandler)
  * @see org.apache.dubbo.remoting.Transporter#connect(org.apache.dubbo.common.URL, ChannelHandler)

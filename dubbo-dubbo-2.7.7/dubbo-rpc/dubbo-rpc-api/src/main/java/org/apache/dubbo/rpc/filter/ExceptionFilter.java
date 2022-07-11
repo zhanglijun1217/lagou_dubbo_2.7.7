@@ -89,8 +89,12 @@ public class ExceptionFilter implements Filter, Filter.Listener {
                 }
 
                 // for the exception not found in method's signature, print ERROR message in server's log.
-                // 打一个errorr日志
-                logger.error("Got unchecked and undeclared exception which called by " + RpcContext.getContext().getRemoteHost() + ". service: " + invoker.getInterface().getName() + ", method: " + invocation.getMethodName() + ", exception: " + exception.getClass().getName() + ": " + exception.getMessage(), exception);
+                // 打一个errorr日志 （方法前面上没有声明的非受检异常需要error）
+                logger.error("Got unchecked and undeclared exception which called by "
+                        + RpcContext.getContext().getRemoteHost() +
+                        ". service: " + invoker.getInterface().getName() +
+                        ", method: " + invocation.getMethodName() + ", exception: "
+                        + exception.getClass().getName() + ": " + exception.getMessage(), exception);
 
                 // directly throw if exception class and interface class are in the same jar file.
                 // 直接抛出异常 如果和接口在同一个jar包里

@@ -32,14 +32,20 @@ import java.util.List;
 
 import static org.apache.dubbo.common.constants.CommonConstants.REFERENCE_INTERCEPTOR_KEY;
 
+/**
+ * Cluster接口的抽象实现 Cluster集群容错的实现都是封装为对应的ClusterInvoker中 {@See AbstractClusterInvoker}
+ * AbstractCluster核心逻辑就是在ClusterInvoker包装一层ClusterInterceptor 实现类似于切面的逻辑
+ */
 public abstract class AbstractCluster implements Cluster {
 
     private <T> Invoker<T> buildClusterInterceptors(AbstractClusterInvoker<T> clusterInvoker, String key) {
         AbstractClusterInvoker<T> last = clusterInvoker;
+        // ClusterInterceptor是SPI加载自动激活的扩展实现
         List<ClusterInterceptor> interceptors = ExtensionLoader.getExtensionLoader(ClusterInterceptor.class).getActivateExtension(clusterInvoker.getUrl(), key);
 
         if (!interceptors.isEmpty()) {
             for (int i = interceptors.size() - 1; i >= 0; i--) {
+                // 将InterceptorInvokerNode收尾连接到一起，形成调用链
                 final ClusterInterceptor interceptor = interceptors.get(i);
                 final AbstractClusterInvoker<T> next = last;
                 last = new InterceptorInvokerNode<>(clusterInvoker, interceptor, next);
@@ -50,7 +56,12 @@ public abstract class AbstractCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
-        return buildClusterInterceptors(doJoin(directory), directory.getUrl().getParameter(REFERENCE_INTERCEPTOR_KEY));
+        // 2. 外层对ClusterInvoker进行切面包装
+        return buildClusterInterceptors(
+                // 1. 先doJoin获取最终要调用的Invoker对象 比如直接返回一个FailOverClusterInvoker
+                doJoin(directory),
+                directory.getUrl().getParameter(REFERENCE_INTERCEPTOR_KEY)
+        );
     }
 
     protected abstract <T> AbstractClusterInvoker<T> doJoin(Directory<T> directory) throws RpcException;
@@ -86,9 +97,11 @@ public abstract class AbstractCluster implements Cluster {
 
         @Override
         public Result invoke(Invocation invocation) throws RpcException {
+            // 这里来执行interceptor的逻辑
             Result asyncResult;
             try {
                 interceptor.before(next, invocation);
+                // 接口的默认实现  会向下执行 一直执行到具体的Invoker实现
                 asyncResult = interceptor.intercept(next, invocation);
             } catch (Exception e) {
                 // onError callback

@@ -89,9 +89,9 @@ public class NettyServer extends AbstractServer implements RemotingServer {
     protected void doOpen() throws Throwable {
         bootstrap = new ServerBootstrap();
 
-        // netty的bossGroup ?
+        // netty的bossGroup  处理网络连接的accept建立事件的eventLoopGroup 事件循环组，netty线程模型中的组件。每个和客户端建立连接EventLoop会生成NioSocketChannel注册到workerGroup的Selector中
         bossGroup = NettyEventLoopFactory.eventLoopGroup(1, "NettyServerBoss");
-        // netty的workerGroup 处理IO事件 线程数iothreads变量可配  默认核数+1
+        // netty的workerGroup 处理IO读写事件 线程数iothreads变量可配  默认核数+1  主要处理网络的读写事件 workerGroup每个事件循环处理完之后都会触发Pipeline操作，去执行ChannelHandler
         workerGroup = NettyEventLoopFactory.eventLoopGroup(
                 getUrl().getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS),
                 "NettyServerWorker");
@@ -116,6 +116,7 @@ public class NettyServer extends AbstractServer implements RemotingServer {
                             ch.pipeline().addLast("negotiation",
                                     SslHandlerInitializer.sslServerHandler(getUrl(), nettyServerHandler));
                         }
+                        // 注册pipeline 绑定了nettyServerHandler 服务端的请求处理逻辑
                         ch.pipeline()
                                 // 真正去解析Dubbo协议的二进制流 （反序列化）的Decoder
                                 .addLast("decoder", adapter.getDecoder())
